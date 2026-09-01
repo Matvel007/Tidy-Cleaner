@@ -26,7 +26,7 @@ export component TemperatureCard inherits Card {
                 font-family: Typography.font_family;
                 font-size: Typography.size_xs;
                 font-weight: Typography.weight_bold;
-                color: Theme.text_secondary;
+                color: Theme.text_primary;
                 vertical-alignment: center;
             }
 
@@ -34,7 +34,7 @@ export component TemperatureCard inherits Card {
                 text: "°C";
                 font-family: Typography.font_mono;
                 font-size: Typography.size_xs;
-                color: Theme.text_muted;
+                color: Theme.text_primary;
                 vertical-alignment: center;
             }
         }
@@ -132,7 +132,7 @@ export component TemperatureCard inherits Card {
             text: root.cpu_temp_val > 80.0 || root.gpu_temp_val > 80.0 ? I18n.dashboard_temp_high : I18n.dashboard_temp_optimal;
             font-family: Typography.font_family;
             font-size: Typography.size_xs;
-            color: Theme.text_muted;
+            color: Theme.text_primary;
             horizontal-alignment: center;
         }
     }

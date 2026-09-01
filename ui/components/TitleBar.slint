@@ -87,7 +87,11 @@ export component TitleBar inherits Rectangle {
 
                 min_ta := TouchArea {
                     mouse-cursor: pointer;
-                    clicked => { root.minimize(); }
+                    pointer-event(event) => {
+                        if event.kind == PointerEventKind.down {
+                            root.minimize();
+                        }
+                    }
                 }
             }
 
@@ -109,7 +113,11 @@ export component TitleBar inherits Rectangle {
 
                 close_ta := TouchArea {
                     mouse-cursor: pointer;
-                    clicked => { root.close(); }
+                    pointer-event(event) => {
+                        if event.kind == PointerEventKind.down {
+                            root.close();
+                        }
+                    }
                 }
             }
         }
