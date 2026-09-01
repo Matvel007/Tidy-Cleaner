@@ -58,22 +58,22 @@ export component DashboardPage inherits VerticalLayout {
     in property <string> hostname: "localhost";
     in property <string> uptime_str: "0s";
 
-    padding: 14px;
-    spacing: 12px;
+    padding: 12px;
+    spacing: 10px;
 
     HorizontalLayout {
-        spacing: 12px;
+        spacing: 10px;
         vertical-stretch: 1;
 
         // LEFT SECTION: 3 Wide Circular Gauges (Top) and Full Storage Card (Bottom)
         VerticalLayout {
             horizontal-stretch: 2.8;
-            spacing: 12px;
+            spacing: 10px;
 
             // TOP ROW: 3 Circular Gauges
             HorizontalLayout {
-                spacing: 12px;
-                height: 220px;
+                spacing: 10px;
+                height: 200px;
 
                 // 1. CPU Gauge
                 CircularGauge {
@@ -111,9 +111,9 @@ export component DashboardPage inherits VerticalLayout {
 
             // BOTTOM ROW: Separate Disk Cards
             HorizontalLayout {
-                spacing: 12px;
+                spacing: 10px;
                 vertical-stretch: 1;
-                min-height: 184px;
+                min-height: 160px;
 
                 DiskCard {
                     vertical-stretch: 1;
@@ -142,11 +142,11 @@ export component DashboardPage inherits VerticalLayout {
         // RIGHT SECTION: Temperature (Top) and System Overview (Bottom)
         VerticalLayout {
             horizontal-stretch: 1.55;
-            spacing: 12px;
+            spacing: 10px;
 
             // Top: Temperature Card
             TemperatureCard {
-                height: 220px;
+                height: 200px;
                 cpu_temp_str: root.cpu_temp_str;
                 cpu_temp_val: root.cpu_temp_val;
                 gpu_temp_str: root.gpu_temp_str;
@@ -156,9 +156,9 @@ export component DashboardPage inherits VerticalLayout {
             // Bottom: System Overview Card
             Card {
                 vertical-stretch: 1;
-                min-height: 184px;
-                padding_horizontal: 18px;
-                padding_vertical: 14px;
+                min-height: 160px;
+                padding_horizontal: 16px;
+                padding_vertical: 12px;
 
                 VerticalLayout {
                     spacing: 10px;
