@@ -1,0 +1,211 @@
+import { ScrollView } from "std-widgets.slint";
+import { Theme } from "../theme/Palette.slint";
+import { Typography } from "../theme/Typography.slint";
+import { I18n } from "../I18n.slint";
+import { Card } from "../components/Card.slint";
+import { Toggle } from "../components/Toggle.slint";
+import { Button } from "../components/Button.slint";
+
+export component SettingsPage inherits ScrollView {
+    in property <int> theme_mode: 0; // 0: Dark, 1: Light, 2: System
+    in property <string> current_lang: "en";
+    in property <bool> autostart_enabled: false;
+    in property <bool> start_minimized_enabled: false;
+    in property <bool> start_in_tray_enabled: false;
+    in property <bool> confirm_delete_enabled: true;
+    in property <bool> show_hidden_enabled: false;
+
+    callback theme_changed(int);
+    callback lang_changed(string);
+    callback autostart_toggled(bool);
+    callback start_minimized_toggled(bool);
+    callback start_in_tray_toggled(bool);
+    callback confirm_delete_toggled(bool);
+    callback show_hidden_toggled(bool);
+    callback open_logs_clicked();
+
+    viewport-width: self.width;
+
+    VerticalLayout {
+        padding: 24px;
+        spacing: 20px;
+
+        // Section: Appearance & Language
+        Text {
+            text: I18n.settings_appearance;
+            font-family: Typography.font_family;
+            font-size: Typography.size_md;
+            font-weight: Typography.weight_semibold;
+            color: Theme.text_primary;
+        }
+
+        Card {
+            VerticalLayout {
+                spacing: 16px;
+
+                // Theme Mode Selector
+                HorizontalLayout {
+                    alignment: space-between;
+
+                    Text {
+                        text: I18n.settings_theme;
+                        font-family: Typography.font_family;
+                        font-size: Typography.size_base;
+                        color: Theme.text_primary;
+                        vertical-alignment: center;
+                    }
+
+                    HorizontalLayout {
+                        spacing: 8px;
+
+                        Button {
+                            text: I18n.settings_theme_dark;
+                            variant: root.theme_mode == 0 ? "primary" : "secondary";
+                            custom_height: 32px;
+                            clicked => { root.theme_changed(0); }
+                        }
+
+                        Button {
+                            text: I18n.settings_theme_light;
+                            variant: root.theme_mode == 1 ? "primary" : "secondary";
+                            custom_height: 32px;
+                            clicked => { root.theme_changed(1); }
+                        }
+
+                        Button {
+                            text: I18n.settings_theme_system;
+                            variant: root.theme_mode == 2 ? "primary" : "secondary";
+                            custom_height: 32px;
+                            clicked => { root.theme_changed(2); }
+                        }
+                    }
+                }
+
+                // Language Selector
+                HorizontalLayout {
+                    alignment: space-between;
+
+                    Text {
+                        text: I18n.settings_language;
+                        font-family: Typography.font_family;
+                        font-size: Typography.size_base;
+                        color: Theme.text_primary;
+                        vertical-alignment: center;
+                    }
+
+                    HorizontalLayout {
+                        spacing: 8px;
+
+                        Button {
+                            text: "English";
+                            variant: root.current_lang == "en" ? "primary" : "secondary";
+                            custom_height: 32px;
+                            clicked => { root.lang_changed("en"); }
+                        }
+
+                        Button {
+                            text: "Русский";
+                            variant: root.current_lang == "ru" ? "primary" : "secondary";
+                            custom_height: 32px;
+                            clicked => { root.lang_changed("ru"); }
+                        }
+                    }
+                }
+            }
+        }
+
+        // Section: Startup & Tray
+        Text {
+            text: I18n.settings_startup_section;
+            font-family: Typography.font_family;
+            font-size: Typography.size_md;
+            font-weight: Typography.weight_semibold;
+            color: Theme.text_primary;
+        }
+
+        Card {
+            VerticalLayout {
+                spacing: 14px;
+
+                Toggle {
+                    text: I18n.settings_autostart;
+                    checked: root.autostart_enabled;
+                    toggled(val) => { root.autostart_toggled(val); }
+                }
+
+                Toggle {
+                    text: I18n.settings_start_minimized;
+                    checked: root.start_minimized_enabled;
+                    toggled(val) => { root.start_minimized_toggled(val); }
+                }
+
+                Toggle {
+                    text: I18n.settings_start_in_tray;
+                    checked: root.start_in_tray_enabled;
+                    toggled(val) => { root.start_in_tray_toggled(val); }
+                }
+            }
+        }
+
+        // Section: Cleanup Preferences
+        Text {
+            text: I18n.settings_cleanup_section;
+            font-family: Typography.font_family;
+            font-size: Typography.size_md;
+            font-weight: Typography.weight_semibold;
+            color: Theme.text_primary;
+        }
+
+        Card {
+            VerticalLayout {
+                spacing: 14px;
+
+                Toggle {
+                    text: I18n.settings_confirm_delete;
+                    checked: root.confirm_delete_enabled;
+                    toggled(val) => { root.confirm_delete_toggled(val); }
+                }
+
+                Toggle {
+                    text: I18n.settings_show_hidden;
+                    checked: root.show_hidden_enabled;
+                    toggled(val) => { root.show_hidden_toggled(val); }
+                }
+            }
+        }
+
+        // Section: About
+        Text {
+            text: I18n.settings_about;
+            font-family: Typography.font_family;
+            font-size: Typography.size_md;
+            font-weight: Typography.weight_semibold;
+            color: Theme.text_primary;
+        }
+
+        Card {
+            VerticalLayout {
+                spacing: 14px;
+
+                HorizontalLayout {
+                    alignment: space-between;
+
+                    Text {
+                        text: I18n.settings_version_label;
+                        font-family: Typography.font_mono;
+                        font-size: Typography.size_xs;
+                        color: Theme.text_muted;
+                        vertical-alignment: center;
+                    }
+
+                    Button {
+                        text: I18n.settings_open_logs;
+                        variant: "secondary";
+                        custom_height: 32px;
+                        clicked => { root.open_logs_clicked(); }
+                    }
+                }
+            }
+        }
+    }
+}

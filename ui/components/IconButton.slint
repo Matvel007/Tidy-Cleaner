@@ -1,0 +1,34 @@
+import { Theme } from "../theme/Palette.slint";
+
+export component IconButton inherits Rectangle {
+    in property <bool> enabled: true;
+    in property <length> size: 36px;
+    in property <bool> active: false;
+    
+    callback clicked();
+
+    width: size;
+    height: size;
+    border-radius: Theme.radius_md;
+    clip: true;
+
+    background: !root.enabled ? Colors.transparent :
+        active ? Theme.accent_light :
+        touch.pressed ? Theme.surface_active :
+        touch.has-hover ? Theme.surface_hover : Colors.transparent;
+
+    border-width: active ? 1px : 0px;
+    border-color: active ? Theme.accent : Colors.transparent;
+
+    animate background { duration: 120ms; easing: ease-out; }
+
+    @children
+
+    touch := TouchArea {
+        enabled: root.enabled;
+        mouse-cursor: root.enabled ? pointer : default;
+        clicked => {
+            root.clicked();
+        }
+    }
+}

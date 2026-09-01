@@ -1,0 +1,92 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<resources>
+    <!-- App & Navigation -->
+    <string name="app.title">Системный менеджер Linux</string>
+    <string name="nav.dashboard">Мониторинг</string>
+    <string name="nav.cleanup">Очистка</string>
+    <string name="nav.applications">Приложения</string>
+    <string name="nav.startup">Автозагрузка</string>
+    <string name="nav.settings">Настройки</string>
+
+    <!-- Common -->
+    <string name="common.loading">Загрузка...</string>
+    <string name="common.save">Сохранить</string>
+    <string name="common.cancel">Отмена</string>
+    <string name="common.close">Закрыть</string>
+    <string name="common.search">Поиск...</string>
+    <string name="common.refresh">Обновить</string>
+    <string name="common.all">Все</string>
+    <string name="common.enabled">Включено</string>
+    <string name="common.disabled">Отключено</string>
+    <string name="common.status">Статус</string>
+    <string name="common.total">Всего</string>
+    <string name="common.used">Занято</string>
+    <string name="common.free">Свободно</string>
+    <string name="common.open">Открыть</string>
+    <string name="common.delete">Удалить</string>
+    <string name="common.version">Версия</string>
+
+    <!-- Dashboard -->
+    <string name="dashboard.title">Панель мониторинга</string>
+    <string name="dashboard.subtitle">Мониторинг ресурсов и системная диагностика Linux в реальном времени</string>
+    <string name="dashboard.cpu_usage">Загрузка CPU</string>
+    <string name="dashboard.cpu_cores">Ядра</string>
+    <string name="dashboard.cpu_freq">Частота</string>
+    <string name="dashboard.ram_usage">Использование RAM</string>
+    <string name="dashboard.ram_used">Использовано RAM</string>
+    <string name="dashboard.ram_available">Доступно</string>
+    <string name="dashboard.disks">Дисковые накопители</string>
+    <string name="dashboard.system_info">Информация о системе</string>
+    <string name="dashboard.os">Операционная система</string>
+    <string name="dashboard.kernel">Ядро</string>
+    <string name="dashboard.arch">Архитектура</string>
+    <string name="dashboard.hostname">Имя хоста</string>
+    <string name="dashboard.uptime">Время работы</string>
+
+    <!-- Cleanup -->
+    <string name="cleanup.title">Очистка системы</string>
+    <string name="cleanup.subtitle">Поиск и безопасное удаление кэша, временных файлов и остатков</string>
+    <string name="cleanup.fast_scan">Быстрое сканирование</string>
+    <string name="cleanup.full_scan">Полное сканирование</string>
+    <string name="cleanup.scan_start">Начать сканирование</string>
+    <string name="cleanup.clean_selected">Очистить выбранное</string>
+    <string name="cleanup.select_all">Выбрать все</string>
+    <string name="cleanup.deselect_all">Снять выбор</string>
+    <string name="cleanup.empty_title">Готово к сканированию</string>
+    <string name="cleanup.empty_desc">Выберите режим сканирования выше для анализа кэша и временных файлов.</string>
+
+    <!-- Applications -->
+    <string name="applications.title">Установленные приложения</string>
+    <string name="applications.subtitle">Управление пакетами и записями пакетных менеджеров</string>
+    <string name="applications.search_placeholder">Поиск установленных приложений...</string>
+    <string name="applications.uninstall_selected">Удалить выбранные</string>
+    <string name="applications.empty_title">Приложения не найдены</string>
+    <string name="applications.empty_desc">Нет приложений, соответствующих текущему поисковому запросу или фильтру.</string>
+
+    <!-- Startup -->
+    <string name="startup.title">Автозагрузка приложений</string>
+    <string name="startup.subtitle">Управление приложениями и фоновыми службами автозапуска</string>
+    <string name="startup.add_app">Добавить приложение</string>
+    <string name="startup.empty_title">Нет элементов автозагрузки</string>
+    <string name="startup.empty_desc">В настоящее время нет зарегистрированных пользовательских программ в автозапуске.</string>
+
+    <!-- Settings -->
+    <string name="settings.title">Настройки</string>
+    <string name="settings.subtitle">Конфигурация внешнего вида, поведения программы и дисков</string>
+    <string name="settings.appearance">Внешний вид</string>
+    <string name="settings.theme">Тема</string>
+    <string name="settings.theme_dark">Тёмная</string>
+    <string name="settings.theme_light">Светлая</string>
+    <string name="settings.theme_system">Системная</string>
+    <string name="settings.language">Язык</string>
+    <string name="settings.startup_section">Автозапуск и трей</string>
+    <string name="settings.autostart">Запускать при старте системы</string>
+    <string name="settings.start_minimized">Запускать свернутым</string>
+    <string name="settings.start_in_tray">Запускать в системном трее</string>
+    <string name="settings.cleanup_section">Параметры очистки</string>
+    <string name="settings.confirm_delete">Подтверждать перед удалением файлов</string>
+    <string name="settings.show_hidden">Анализировать скрытые каталоги</string>
+    <string name="settings.about">О программе</string>
+    <string name="settings.version_label">Версия 0.1.0 (Linux x86_64)</string>
+    <string name="settings.open_logs">Открыть папку логов</string>
+</resources>

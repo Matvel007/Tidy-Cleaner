@@ -1,0 +1,74 @@
+import { Theme } from "../theme/Palette.slint";
+import { Typography } from "../theme/Typography.slint";
+import { IconSearch, IconClose } from "Icons.slint";
+
+export component SearchInput inherits Rectangle {
+    in-out property <string> text: "";
+    in property <string> placeholder_text: "Search...";
+    in property <bool> enabled: true;
+
+    callback edited(string);
+    callback accepted(string);
+
+    height: 38px;
+    border-radius: Theme.radius_md;
+    background: Theme.surface_secondary;
+    border-width: 1px;
+    border-color: input.has-focus ? Theme.border_focus : Theme.border;
+
+    animate border-color { duration: 150ms; easing: ease-out; }
+
+    HorizontalLayout {
+        padding-left: 12px;
+        padding-right: 12px;
+        spacing: 10px;
+        alignment: center;
+
+        IconSearch {
+            y: (parent.height - self.height) / 2;
+            icon_size: 16px;
+            icon_color: input.has-focus ? Theme.accent : Theme.text_muted;
+        }
+
+        input := TextInput {
+            text <=> root.text;
+            enabled: root.enabled;
+            font-family: Typography.font_family;
+            font-size: Typography.size_base;
+            color: Theme.text_primary;
+            vertical-alignment: center;
+            single-line: true;
+
+            edited => {
+                root.edited(self.text);
+            }
+
+            accepted => {
+                root.accepted(self.text);
+            }
+        }
+
+        if root.text == "" && !input.has-focus: Text {
+            text: root.placeholder_text;
+            font-family: Typography.font_family;
+            font-size: Typography.size_base;
+            color: Theme.text_muted;
+            vertical-alignment: center;
+        }
+
+        if root.text != "": TouchArea {
+            width: 20px;
+            height: 20px;
+            mouse-cursor: pointer;
+            clicked => {
+                root.text = "";
+                root.edited("");
+            }
+
+            IconClose {
+                icon_size: 14px;
+                icon_color: Theme.text_muted;
+            }
+        }
+    }
+}

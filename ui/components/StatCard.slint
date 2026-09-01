@@ -1,0 +1,63 @@
+import { Theme } from "../theme/Palette.slint";
+import { Typography } from "../theme/Typography.slint";
+import { Card } from "Card.slint";
+
+export component StatCard inherits Card {
+    in property <string> title: "Metric";
+    in property <string> value: "0";
+    in property <string> unit: "%";
+    in property <string> subtext: "";
+    in property <color> accent_color: Theme.accent;
+
+    VerticalLayout {
+        spacing: 10px;
+
+        HorizontalLayout {
+            alignment: space-between;
+
+            Text {
+                text: root.title;
+                font-family: Typography.font_family;
+                font-size: Typography.size_sm;
+                font-weight: Typography.weight_medium;
+                color: Theme.text_secondary;
+            }
+
+            Rectangle {
+                width: 8px;
+                height: 8px;
+                border-radius: Theme.radius_full;
+                background: root.accent_color;
+            }
+        }
+
+        HorizontalLayout {
+            spacing: 4px;
+            alignment: start;
+
+            Text {
+                text: root.value;
+                font-family: Typography.font_family;
+                font-size: Typography.size_3xl;
+                font-weight: Typography.weight_bold;
+                color: Theme.text_primary;
+            }
+
+            Text {
+                text: root.unit;
+                font-family: Typography.font_family;
+                font-size: Typography.size_md;
+                font-weight: Typography.weight_medium;
+                color: Theme.text_muted;
+                vertical-alignment: bottom;
+            }
+        }
+
+        if root.subtext != "": Text {
+            text: root.subtext;
+            font-family: Typography.font_family;
+            font-size: Typography.size_xs;
+            color: Theme.text_muted;
+        }
+    }
+}

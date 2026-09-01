@@ -1,0 +1,82 @@
+import { Theme } from "../theme/Palette.slint";
+import { Typography } from "../theme/Typography.slint";
+import { I18n } from "../I18n.slint";
+import { SearchInput } from "../components/SearchInput.slint";
+import { Button } from "../components/Button.slint";
+import { Card } from "../components/Card.slint";
+import { Pagination } from "../components/Pagination.slint";
+import { IconApplications } from "../components/Icons.slint";
+
+export component ApplicationsPage inherits VerticalLayout {
+    in property <string> search_query: "";
+    in property <int> current_page: 1;
+    in property <int> total_pages: 1;
+    in property <int> total_items: 0;
+
+    callback search_changed(string);
+    callback page_changed(int);
+    callback uninstall_selected();
+
+    padding: 24px;
+    spacing: 18px;
+
+    // Filter and search toolbar
+    HorizontalLayout {
+        spacing: 16px;
+
+        SearchInput {
+            placeholder_text: I18n.applications_search_placeholder;
+            horizontal-stretch: 1;
+            edited(query) => { root.search_changed(query); }
+        }
+
+        Button {
+            text: I18n.applications_uninstall_selected;
+            variant: "danger";
+            custom_height: 38px;
+            enabled: false;
+            clicked => { root.uninstall_selected(); }
+        }
+    }
+
+    // Applications list container / Empty state
+    Card {
+        vertical-stretch: 1;
+
+        VerticalLayout {
+            alignment: center;
+            spacing: 14px;
+
+            IconApplications {
+                x: (parent.width - self.width) / 2;
+                icon_size: 48px;
+                icon_color: Theme.text_muted;
+            }
+
+            Text {
+                text: I18n.applications_empty_title;
+                font-family: Typography.font_family;
+                font-size: Typography.size_lg;
+                font-weight: Typography.weight_semibold;
+                color: Theme.text_primary;
+                horizontal-alignment: center;
+            }
+
+            Text {
+                text: I18n.applications_empty_desc;
+                font-family: Typography.font_family;
+                font-size: Typography.size_base;
+                color: Theme.text_muted;
+                horizontal-alignment: center;
+            }
+        }
+    }
+
+    // Pagination
+    Pagination {
+        current_page: root.current_page;
+        total_pages: root.total_pages;
+        total_items: root.total_items;
+        page_changed(p) => { root.page_changed(p); }
+    }
+}

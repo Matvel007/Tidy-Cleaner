@@ -1,0 +1,56 @@
+import { Theme } from "../theme/Palette.slint";
+import { Typography } from "../theme/Typography.slint";
+
+export component Button inherits Rectangle {
+    in property <string> text: "Button";
+    in property <string> variant: "primary"; // "primary" | "secondary" | "danger" | "ghost"
+    in property <bool> enabled: true;
+    in property <length> custom_height: 36px;
+    in property <length> custom_font_size: Typography.size_base;
+    
+    callback clicked();
+
+    height: custom_height;
+    border-radius: Theme.radius_md;
+    clip: true;
+
+    // Background color computation
+    background: !root.enabled ? (Theme.is_dark ? #21242c : #f1f5f9) :
+        variant == "primary" ? (touch.pressed ? Theme.accent.darker(15%) : (touch.has-hover ? Theme.accent_hover : Theme.accent)) :
+        variant == "danger" ? (touch.pressed ? Theme.danger.darker(15%) : (touch.has-hover ? Theme.danger.brighter(10%) : Theme.danger)) :
+        variant == "secondary" ? (touch.pressed ? Theme.surface_active : (touch.has-hover ? Theme.surface_hover : Theme.surface_secondary)) :
+        /* ghost */ (touch.pressed ? Theme.surface_active : (touch.has-hover ? Theme.surface_hover : Colors.transparent));
+
+    border-width: variant == "secondary" ? 1px : 0px;
+    border-color: Theme.border;
+
+    animate background { duration: 150ms; easing: ease-out; }
+    animate border-color { duration: 150ms; easing: ease-out; }
+
+    HorizontalLayout {
+        padding-left: 16px;
+        padding-right: 16px;
+        alignment: center;
+
+        Text {
+            text: root.text;
+            font-family: Typography.font_family;
+            font-size: root.custom_font_size;
+            font-weight: Typography.weight_medium;
+            vertical-alignment: center;
+            horizontal-alignment: center;
+
+            color: !root.enabled ? Theme.text_muted :
+                variant == "primary" || variant == "danger" ? #ffffff :
+                Theme.text_primary;
+        }
+    }
+
+    touch := TouchArea {
+        enabled: root.enabled;
+        mouse-cursor: root.enabled ? pointer : default;
+        clicked => {
+            root.clicked();
+        }
+    }
+}

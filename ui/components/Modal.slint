@@ -1,0 +1,97 @@
+import { Theme } from "../theme/Palette.slint";
+import { Typography } from "../theme/Typography.slint";
+import { Button } from "Button.slint";
+import { IconButton } from "IconButton.slint";
+import { IconClose } from "Icons.slint";
+import { I18n } from "../I18n.slint";
+
+export component Modal inherits Rectangle {
+    in property <bool> is_open: false;
+    in property <string> title: "Dialog";
+    in property <string> confirm_text: I18n.common_save;
+    in property <string> cancel_text: I18n.common_cancel;
+    in property <bool> danger_action: false;
+
+    callback confirmed();
+    callback cancelled();
+
+    width: 100%;
+    height: 100%;
+    visible: root.is_open;
+    z: 1000;
+
+    // Backdrop
+    Rectangle {
+        width: 100%;
+        height: 100%;
+        background: #00000099;
+
+        TouchArea {
+            clicked => {
+                root.cancelled();
+            }
+        }
+    }
+
+    // Modal Card
+    dialog_card := Rectangle {
+        width: 480px;
+        x: (parent.width - self.width) / 2;
+        y: (parent.height - self.height) / 2;
+        background: Theme.surface;
+        border-radius: Theme.radius_lg;
+        border-width: 1px;
+        border-color: Theme.border;
+        clip: true;
+
+        VerticalLayout {
+            padding: 24px;
+            spacing: 18px;
+
+            // Header
+            HorizontalLayout {
+                alignment: space-between;
+
+                Text {
+                    text: root.title;
+                    font-family: Typography.font_family;
+                    font-size: Typography.size_lg;
+                    font-weight: Typography.weight_bold;
+                    color: Theme.text_primary;
+                    vertical-alignment: center;
+                }
+
+                IconButton {
+                    size: 30px;
+                    clicked => { root.cancelled(); }
+                    IconClose {
+                        x: (parent.width - self.width) / 2;
+                        y: (parent.height - self.height) / 2;
+                        icon_size: 14px;
+                    }
+                }
+            }
+
+            // Body content slot
+            @children
+
+            // Footer Actions
+            HorizontalLayout {
+                spacing: 12px;
+                alignment: end;
+
+                Button {
+                    text: root.cancel_text;
+                    variant: "secondary";
+                    clicked => { root.cancelled(); }
+                }
+
+                Button {
+                    text: root.confirm_text;
+                    variant: root.danger_action ? "danger" : "primary";
+                    clicked => { root.confirmed(); }
+                }
+            }
+        }
+    }
+}

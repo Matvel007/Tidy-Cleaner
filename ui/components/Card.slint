@@ -1,0 +1,36 @@
+import { Theme } from "../theme/Palette.slint";
+
+export component Card inherits Rectangle {
+    in property <length> padding_horizontal: 20px;
+    in property <length> padding_vertical: 18px;
+    in property <bool> interactive: false;
+    in property <bool> selected: false;
+
+    callback clicked();
+
+    background: selected ? Theme.accent_light :
+        (interactive && touch.has-hover ? Theme.surface_hover : Theme.surface);
+    border-radius: Theme.radius_lg;
+    border-width: 1px;
+    border-color: selected ? Theme.accent : (interactive && touch.has-hover ? Theme.border_focus : Theme.border);
+
+    animate background { duration: 150ms; easing: ease-out; }
+    animate border-color { duration: 150ms; easing: ease-out; }
+
+    VerticalLayout {
+        padding-left: root.padding_horizontal;
+        padding-right: root.padding_horizontal;
+        padding-top: root.padding_vertical;
+        padding-bottom: root.padding_vertical;
+
+        @children
+    }
+
+    touch := TouchArea {
+        enabled: root.interactive;
+        mouse-cursor: root.interactive ? pointer : default;
+        clicked => {
+            root.clicked();
+        }
+    }
+}

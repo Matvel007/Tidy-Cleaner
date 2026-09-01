@@ -1,0 +1,120 @@
+import { Theme } from "../theme/Palette.slint";
+import { Typography } from "../theme/Typography.slint";
+import { IconButton } from "IconButton.slint";
+import { IconRefresh } from "Icons.slint";
+
+export component TopBar inherits Rectangle {
+    in property <string> title: "Dashboard";
+    in property <string> subtitle: "Real-time system diagnostics";
+    in property <string> current_lang: "EN";
+    
+    callback theme_toggled();
+    callback lang_toggled();
+    callback refresh_clicked();
+
+    height: 64px;
+    background: Theme.surface;
+
+    // Bottom border
+    Rectangle {
+        y: parent.height - 1px;
+        width: 100%;
+        height: 1px;
+        background: Theme.border;
+    }
+
+    HorizontalLayout {
+        padding-left: 28px;
+        padding-right: 28px;
+        alignment: space-between;
+
+        // Title and Subtitle
+        VerticalLayout {
+            alignment: center;
+            spacing: 2px;
+
+            Text {
+                text: root.title;
+                font-family: Typography.font_family;
+                font-size: Typography.size_xl;
+                font-weight: Typography.weight_bold;
+                color: Theme.text_primary;
+            }
+
+            Text {
+                text: root.subtitle;
+                font-family: Typography.font_family;
+                font-size: Typography.size_xs;
+                color: Theme.text_muted;
+            }
+        }
+
+        // Action controls
+        HorizontalLayout {
+            spacing: 12px;
+            alignment: center;
+
+            // Refresh action
+            IconButton {
+                size: 34px;
+                clicked => { root.refresh_clicked(); }
+                IconRefresh {
+                    x: (parent.width - self.width) / 2;
+                    y: (parent.height - self.height) / 2;
+                    icon_size: 15px;
+                    icon_color: Theme.text_secondary;
+                }
+            }
+
+            // Language switch pill
+            Rectangle {
+                width: 44px;
+                height: 32px;
+                border-radius: Theme.radius_md;
+                background: Theme.surface_secondary;
+                border-width: 1px;
+                border-color: Theme.border;
+
+                Text {
+                    text: root.current_lang;
+                    font-family: Typography.font_mono;
+                    font-size: Typography.size_xs;
+                    font-weight: Typography.weight_semibold;
+                    color: Theme.text_primary;
+                    horizontal-alignment: center;
+                    vertical-alignment: center;
+                }
+
+                TouchArea {
+                    mouse-cursor: pointer;
+                    clicked => { root.lang_toggled(); }
+                }
+            }
+
+            // Theme toggle button
+            Rectangle {
+                width: 34px;
+                height: 32px;
+                border-radius: Theme.radius_md;
+                background: Theme.surface_secondary;
+                border-width: 1px;
+                border-color: Theme.border;
+
+                // Sun / Moon icon representation
+                Rectangle {
+                    x: (parent.width - self.width) / 2;
+                    y: (parent.height - self.height) / 2;
+                    width: 14px;
+                    height: 14px;
+                    border-radius: 7px;
+                    background: Theme.is_dark ? #f59e0b : #3b82f6;
+                }
+
+                TouchArea {
+                    mouse-cursor: pointer;
+                    clicked => { root.theme_toggled(); }
+                }
+            }
+        }
+    }
+}

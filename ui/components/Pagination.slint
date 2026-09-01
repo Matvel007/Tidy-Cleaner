@@ -1,0 +1,68 @@
+import { Theme } from "../theme/Palette.slint";
+import { Typography } from "../theme/Typography.slint";
+import { Button } from "Button.slint";
+
+export component Pagination inherits Rectangle {
+    in property <int> current_page: 1;
+    in property <int> total_pages: 1;
+    in property <int> total_items: 0;
+
+    callback page_changed(int);
+
+    height: 40px;
+    background: Colors.transparent;
+
+    HorizontalLayout {
+        alignment: space-between;
+
+        Text {
+            text: "Total items: " + root.total_items;
+            font-family: Typography.font_family;
+            font-size: Typography.size_xs;
+            color: Theme.text_muted;
+            vertical-alignment: center;
+        }
+
+        HorizontalLayout {
+            spacing: 8px;
+            alignment: center;
+
+            Button {
+                text: "‹";
+                variant: "secondary";
+                custom_height: 30px;
+                enabled: root.current_page > 1;
+                clicked => {
+                    root.page_changed(root.current_page - 1);
+                }
+            }
+
+            Rectangle {
+                height: 30px;
+                background: Colors.transparent;
+                HorizontalLayout {
+                    padding-left: 8px;
+                    padding-right: 8px;
+                    Text {
+                        text: root.current_page + " / " + Math.max(1, root.total_pages);
+                        font-family: Typography.font_mono;
+                        font-size: Typography.size_xs;
+                        font-weight: Typography.weight_semibold;
+                        color: Theme.text_primary;
+                        vertical-alignment: center;
+                    }
+                }
+            }
+
+            Button {
+                text: "›";
+                variant: "secondary";
+                custom_height: 30px;
+                enabled: root.current_page < root.total_pages;
+                clicked => {
+                    root.page_changed(root.current_page + 1);
+                }
+            }
+        }
+    }
+}

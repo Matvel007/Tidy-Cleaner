@@ -1,0 +1,57 @@
+import { Theme } from "../theme/Palette.slint";
+import { Typography } from "../theme/Typography.slint";
+
+export component Toggle inherits Rectangle {
+    in-out property <bool> checked: false;
+    in property <string> text: "";
+    in property <bool> enabled: true;
+
+    callback toggled(bool);
+
+    height: 26px;
+    background: Colors.transparent;
+
+    HorizontalLayout {
+        spacing: 12px;
+        alignment: start;
+
+        track := Rectangle {
+            width: 40px;
+            height: 22px;
+            y: (parent.height - self.height) / 2;
+            border-radius: 11px;
+            background: !root.enabled ? (Theme.is_dark ? #21242c : #f1f5f9) :
+                root.checked ? Theme.accent : (Theme.is_dark ? #282c37 : #cbd5e1);
+
+            animate background { duration: 180ms; easing: ease-out; }
+
+            thumb := Rectangle {
+                x: root.checked ? 20px : 2px;
+                y: 2px;
+                width: 18px;
+                height: 18px;
+                border-radius: 9px;
+                background: #ffffff;
+
+                animate x { duration: 180ms; easing: ease-out; }
+            }
+        }
+
+        if root.text != "": Text {
+            text: root.text;
+            font-family: Typography.font_family;
+            font-size: Typography.size_base;
+            color: !root.enabled ? Theme.text_muted : Theme.text_primary;
+            vertical-alignment: center;
+        }
+    }
+
+    touch := TouchArea {
+        enabled: root.enabled;
+        mouse-cursor: root.enabled ? pointer : default;
+        clicked => {
+            root.checked = !root.checked;
+            root.toggled(root.checked);
+        }
+    }
+}

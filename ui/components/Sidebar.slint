@@ -1,0 +1,206 @@
+import { Theme } from "../theme/Palette.slint";
+import { Typography } from "../theme/Typography.slint";
+import { I18n } from "../I18n.slint";
+import { IconDashboard, IconCleanup, IconApplications, IconStartup, IconSettings } from "Icons.slint";
+
+component NavItem inherits Rectangle {
+    in property <string> title: "Item";
+    in property <int> index: 0;
+    in property <int> active_index: 0;
+    
+    callback selected(int);
+
+    height: 44px;
+    border-radius: Theme.radius_md;
+    clip: true;
+
+    property <bool> is_active: index == active_index;
+
+    background: is_active ? Theme.accent_light :
+        touch.has-hover ? Theme.surface_hover : Colors.transparent;
+
+    animate background { duration: 150ms; easing: ease-out; }
+
+    // Active left indicator bar
+    if is_active: Rectangle {
+        x: 0px;
+        y: 8px;
+        width: 3px;
+        height: 28px;
+        border-radius: 2px;
+        background: Theme.accent;
+    }
+
+    HorizontalLayout {
+        padding-left: 16px;
+        padding-right: 16px;
+        spacing: 12px;
+        alignment: start;
+
+        // Icons based on index
+        if root.index == 0: IconDashboard {
+            y: (parent.height - self.height) / 2;
+            icon_size: 18px;
+            icon_color: is_active ? Theme.accent : (touch.has-hover ? Theme.text_primary : Theme.text_secondary);
+        }
+        if root.index == 1: IconCleanup {
+            y: (parent.height - self.height) / 2;
+            icon_size: 18px;
+            icon_color: is_active ? Theme.accent : (touch.has-hover ? Theme.text_primary : Theme.text_secondary);
+        }
+        if root.index == 2: IconApplications {
+            y: (parent.height - self.height) / 2;
+            icon_size: 18px;
+            icon_color: is_active ? Theme.accent : (touch.has-hover ? Theme.text_primary : Theme.text_secondary);
+        }
+        if root.index == 3: IconStartup {
+            y: (parent.height - self.height) / 2;
+            icon_size: 18px;
+            icon_color: is_active ? Theme.accent : (touch.has-hover ? Theme.text_primary : Theme.text_secondary);
+        }
+        if root.index == 4: IconSettings {
+            y: (parent.height - self.height) / 2;
+            icon_size: 18px;
+            icon_color: is_active ? Theme.accent : (touch.has-hover ? Theme.text_primary : Theme.text_secondary);
+        }
+
+        Text {
+            text: root.title;
+            font-family: Typography.font_family;
+            font-size: Typography.size_md;
+            font-weight: is_active ? Typography.weight_semibold : Typography.weight_medium;
+            color: is_active ? Theme.accent : (touch.has-hover ? Theme.text_primary : Theme.text_secondary);
+            vertical-alignment: center;
+        }
+    }
+
+    touch := TouchArea {
+        mouse-cursor: pointer;
+        clicked => {
+            root.selected(root.index);
+        }
+    }
+}
+
+export component Sidebar inherits Rectangle {
+    in-out property <int> active_page: 0;
+    
+    callback page_changed(int);
+
+    width: 220px;
+    background: Theme.surface;
+    border-width: 0px;
+    border-color: Theme.border;
+
+    // Right border line
+    Rectangle {
+        x: parent.width - 1px;
+        width: 1px;
+        height: 100%;
+        background: Theme.border;
+    }
+
+    VerticalLayout {
+        padding: 16px;
+        spacing: 6px;
+
+        // App Branding Header
+        HorizontalLayout {
+            padding-left: 8px;
+            padding-bottom: 18px;
+            spacing: 10px;
+            alignment: start;
+
+            Rectangle {
+                width: 32px;
+                height: 32px;
+                border-radius: Theme.radius_md;
+                background: Theme.accent;
+
+                Path {
+                    width: 100%;
+                    height: 100%;
+                    stroke: #ffffff;
+                    stroke-width: 2px;
+                    commands: "M 8 16 L 16 8 L 24 16 L 16 24 Z";
+                }
+            }
+
+            VerticalLayout {
+                alignment: center;
+                spacing: 2px;
+
+                Text {
+                    text: "Cleaner";
+                    font-family: Typography.font_family;
+                    font-size: Typography.size_lg;
+                    font-weight: Typography.weight_bold;
+                    color: Theme.text_primary;
+                }
+
+                Text {
+                    text: "System Manager";
+                    font-family: Typography.font_family;
+                    font-size: Typography.size_xs;
+                    color: Theme.text_muted;
+                }
+            }
+        }
+
+        // Navigation Items
+        NavItem {
+            title: I18n.nav_dashboard;
+            index: 0;
+            active_index: root.active_page;
+            selected(idx) => {
+                root.active_page = idx;
+                root.page_changed(idx);
+            }
+        }
+
+        NavItem {
+            title: I18n.nav_cleanup;
+            index: 1;
+            active_index: root.active_page;
+            selected(idx) => {
+                root.active_page = idx;
+                root.page_changed(idx);
+            }
+        }
+
+        NavItem {
+            title: I18n.nav_applications;
+            index: 2;
+            active_index: root.active_page;
+            selected(idx) => {
+                root.active_page = idx;
+                root.page_changed(idx);
+            }
+        }
+
+        NavItem {
+            title: I18n.nav_startup;
+            index: 3;
+            active_index: root.active_page;
+            selected(idx) => {
+                root.active_page = idx;
+                root.page_changed(idx);
+            }
+        }
+
+        Rectangle {
+            // Spacer
+            vertical-stretch: 1;
+        }
+
+        NavItem {
+            title: I18n.nav_settings;
+            index: 4;
+            active_index: root.active_page;
+            selected(idx) => {
+                root.active_page = idx;
+                root.page_changed(idx);
+            }
+        }
+    }
+}

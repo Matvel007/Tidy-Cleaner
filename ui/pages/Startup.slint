@@ -1,0 +1,65 @@
+import { Theme } from "../theme/Palette.slint";
+import { Typography } from "../theme/Typography.slint";
+import { I18n } from "../I18n.slint";
+import { Button } from "../components/Button.slint";
+import { Card } from "../components/Card.slint";
+import { IconStartup } from "../components/Icons.slint";
+
+export component StartupPage inherits VerticalLayout {
+    callback add_app_clicked();
+
+    padding: 24px;
+    spacing: 18px;
+
+    HorizontalLayout {
+        alignment: space-between;
+
+        Text {
+            text: I18n.startup_subtitle;
+            font-family: Typography.font_family;
+            font-size: Typography.size_base;
+            color: Theme.text_muted;
+            vertical-alignment: center;
+        }
+
+        Button {
+            text: I18n.startup_add_app;
+            variant: "primary";
+            custom_height: 38px;
+            clicked => { root.add_app_clicked(); }
+        }
+    }
+
+    // Startup items container / Empty state
+    Card {
+        vertical-stretch: 1;
+
+        VerticalLayout {
+            alignment: center;
+            spacing: 14px;
+
+            IconStartup {
+                x: (parent.width - self.width) / 2;
+                icon_size: 48px;
+                icon_color: Theme.text_muted;
+            }
+
+            Text {
+                text: I18n.startup_empty_title;
+                font-family: Typography.font_family;
+                font-size: Typography.size_lg;
+                font-weight: Typography.weight_semibold;
+                color: Theme.text_primary;
+                horizontal-alignment: center;
+            }
+
+            Text {
+                text: I18n.startup_empty_desc;
+                font-family: Typography.font_family;
+                font-size: Typography.size_base;
+                color: Theme.text_muted;
+                horizontal-alignment: center;
+            }
+        }
+    }
+}

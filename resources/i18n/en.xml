@@ -1,0 +1,92 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<resources>
+    <!-- App & Navigation -->
+    <string name="app.title">Linux System Manager</string>
+    <string name="nav.dashboard">Dashboard</string>
+    <string name="nav.cleanup">Cleanup</string>
+    <string name="nav.applications">Applications</string>
+    <string name="nav.startup">Startup</string>
+    <string name="nav.settings">Settings</string>
+
+    <!-- Common -->
+    <string name="common.loading">Loading...</string>
+    <string name="common.save">Save</string>
+    <string name="common.cancel">Cancel</string>
+    <string name="common.close">Close</string>
+    <string name="common.search">Search...</string>
+    <string name="common.refresh">Refresh</string>
+    <string name="common.all">All</string>
+    <string name="common.enabled">Enabled</string>
+    <string name="common.disabled">Disabled</string>
+    <string name="common.status">Status</string>
+    <string name="common.total">Total</string>
+    <string name="common.used">Used</string>
+    <string name="common.free">Free</string>
+    <string name="common.open">Open</string>
+    <string name="common.delete">Delete</string>
+    <string name="common.version">Version</string>
+
+    <!-- Dashboard -->
+    <string name="dashboard.title">System Dashboard</string>
+    <string name="dashboard.subtitle">Real-time Linux system resource monitoring and diagnostics</string>
+    <string name="dashboard.cpu_usage">CPU Usage</string>
+    <string name="dashboard.cpu_cores">Cores</string>
+    <string name="dashboard.cpu_freq">Frequency</string>
+    <string name="dashboard.ram_usage">RAM Usage</string>
+    <string name="dashboard.ram_used">Used RAM</string>
+    <string name="dashboard.ram_available">Available</string>
+    <string name="dashboard.disks">Storage Disks</string>
+    <string name="dashboard.system_info">System Information</string>
+    <string name="dashboard.os">Operating System</string>
+    <string name="dashboard.kernel">Kernel</string>
+    <string name="dashboard.arch">Architecture</string>
+    <string name="dashboard.hostname">Hostname</string>
+    <string name="dashboard.uptime">Uptime</string>
+
+    <!-- Cleanup -->
+    <string name="cleanup.title">System Cleanup</string>
+    <string name="cleanup.subtitle">Find and safely remove cache, temporary files, and leftovers</string>
+    <string name="cleanup.fast_scan">Fast Scan</string>
+    <string name="cleanup.full_scan">Full Scan</string>
+    <string name="cleanup.scan_start">Start Scan</string>
+    <string name="cleanup.clean_selected">Clean Selected</string>
+    <string name="cleanup.select_all">Select All</string>
+    <string name="cleanup.deselect_all">Deselect All</string>
+    <string name="cleanup.empty_title">Ready to Scan</string>
+    <string name="cleanup.empty_desc">Select a scan mode above to inspect system caches and temporary storage.</string>
+
+    <!-- Applications -->
+    <string name="applications.title">Installed Applications</string>
+    <string name="applications.subtitle">Manage desktop packages and package manager entries</string>
+    <string name="applications.search_placeholder">Search installed applications...</string>
+    <string name="applications.uninstall_selected">Uninstall Selected</string>
+    <string name="applications.empty_title">No Applications Found</string>
+    <string name="applications.empty_desc">No applications match the current search query or filter.</string>
+
+    <!-- Startup -->
+    <string name="startup.title">Startup Applications</string>
+    <string name="startup.subtitle">Manage autostart desktop entries and background services</string>
+    <string name="startup.add_app">Add Application</string>
+    <string name="startup.empty_title">No Startup Applications</string>
+    <string name="startup.empty_desc">No custom autostart applications are currently registered.</string>
+
+    <!-- Settings -->
+    <string name="settings.title">Settings</string>
+    <string name="settings.subtitle">Configure application appearance, behavior, and storage analysis</string>
+    <string name="settings.appearance">Appearance</string>
+    <string name="settings.theme">Theme</string>
+    <string name="settings.theme_dark">Dark</string>
+    <string name="settings.theme_light">Light</string>
+    <string name="settings.theme_system">System</string>
+    <string name="settings.language">Language</string>
+    <string name="settings.startup_section">Startup &amp; Tray</string>
+    <string name="settings.autostart">Launch on system startup</string>
+    <string name="settings.start_minimized">Start minimized</string>
+    <string name="settings.start_in_tray">Start in system tray</string>
+    <string name="settings.cleanup_section">Cleanup Preferences</string>
+    <string name="settings.confirm_delete">Confirm before deleting files</string>
+    <string name="settings.show_hidden">Analyze hidden directories</string>
+    <string name="settings.about">About Application</string>
+    <string name="settings.version_label">Version 0.1.0 (Linux x86_64)</string>
+    <string name="settings.open_logs">Open Logs Folder</string>
+</resources>

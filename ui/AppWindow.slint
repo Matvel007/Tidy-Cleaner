@@ -1,0 +1,153 @@
+import { Theme } from "theme/Palette.slint";
+import { Typography } from "theme/Typography.slint";
+import { I18n } from "I18n.slint";
+import { Sidebar } from "components/Sidebar.slint";
+import { TopBar } from "components/TopBar.slint";
+import { DashboardPage } from "pages/Dashboard.slint";
+import { CleanupPage } from "pages/Cleanup.slint";
+import { ApplicationsPage } from "pages/Applications.slint";
+import { StartupPage } from "pages/Startup.slint";
+import { SettingsPage } from "pages/Settings.slint";
+
+export { Theme, Typography, I18n }
+
+export component AppWindow inherits Window {
+    title: I18n.app_title;
+    preferred-width: 1040px;
+    preferred-height: 700px;
+    min-width: 840px;
+    min-height: 560px;
+    background: Theme.background;
+    default-font-family: Typography.font_family;
+
+    // Navigation & State
+    in-out property <int> current_page: 0;
+    in-out property <string> current_lang: "en";
+    in-out property <int> theme_mode: 0;
+
+    // Dashboard metrics
+    in-out property <string> cpu_usage_str: "0";
+    in-out property <string> cpu_cores_str: "-";
+    in-out property <string> cpu_freq_str: "-";
+    in-out property <string> ram_usage_str: "0";
+    in-out property <string> ram_used_str: "0 GB";
+    in-out property <string> ram_total_str: "0 GB";
+    in-out property <string> os_name: "-";
+    in-out property <string> kernel_version: "-";
+    in-out property <string> architecture: "-";
+    in-out property <string> hostname: "-";
+    in-out property <string> uptime_str: "-";
+
+    // Callbacks to Rust
+    callback refresh_requested();
+    callback theme_toggle_requested();
+    callback language_toggle_requested();
+    callback page_selected(int);
+    
+    // Settings callbacks
+    callback settings_theme_changed(int);
+    callback settings_lang_changed(string);
+    callback settings_autostart_toggled(bool);
+    callback settings_start_minimized_toggled(bool);
+    callback settings_start_in_tray_toggled(bool);
+    callback settings_confirm_delete_toggled(bool);
+    callback settings_show_hidden_toggled(bool);
+    callback settings_open_logs_clicked();
+
+    // Subsystem callbacks
+    callback cleanup_fast_scan();
+    callback cleanup_full_scan();
+    callback cleanup_clean_selected();
+    callback applications_search(string);
+    callback applications_page_change(int);
+    callback applications_uninstall();
+    callback startup_add_app();
+
+    HorizontalLayout {
+        spacing: 0px;
+
+        // Persistent Left Navigation
+        Sidebar {
+            active_page <=> root.current_page;
+            page_changed(idx) => {
+                root.page_selected(idx);
+            }
+        }
+
+        // Main Content Area
+        VerticalLayout {
+            spacing: 0px;
+            horizontal-stretch: 1;
+
+            // Top Header Bar
+            TopBar {
+                title: root.current_page == 0 ? I18n.nav_dashboard :
+                    root.current_page == 1 ? I18n.nav_cleanup :
+                    root.current_page == 2 ? I18n.nav_applications :
+                    root.current_page == 3 ? I18n.nav_startup :
+                    I18n.nav_settings;
+                
+                subtitle: root.current_page == 0 ? I18n.dashboard_subtitle :
+                    root.current_page == 1 ? I18n.cleanup_subtitle :
+                    root.current_page == 2 ? I18n.applications_subtitle :
+                    root.current_page == 3 ? I18n.startup_subtitle :
+                    I18n.settings_subtitle;
+
+                current_lang: root.current_lang == "ru" ? "RU" : "EN";
+
+                refresh_clicked => { root.refresh_requested(); }
+                theme_toggled => { root.theme_toggle_requested(); }
+                lang_toggled => { root.language_toggle_requested(); }
+            }
+
+            // Active Page View
+            Rectangle {
+                vertical-stretch: 1;
+                background: Theme.background;
+
+                if root.current_page == 0: DashboardPage {
+                    cpu_usage_str: root.cpu_usage_str;
+                    cpu_cores_str: root.cpu_cores_str;
+                    cpu_freq_str: root.cpu_freq_str;
+                    ram_usage_str: root.ram_usage_str;
+                    ram_used_str: root.ram_used_str;
+                    ram_total_str: root.ram_total_str;
+                    os_name: root.os_name;
+                    kernel_version: root.kernel_version;
+                    architecture: root.architecture;
+                    hostname: root.hostname;
+                    uptime_str: root.uptime_str;
+                }
+
+                if root.current_page == 1: CleanupPage {
+                    start_fast_scan => { root.cleanup_fast_scan(); }
+                    start_full_scan => { root.cleanup_full_scan(); }
+                    clean_selected => { root.cleanup_clean_selected(); }
+                }
+
+                if root.current_page == 2: ApplicationsPage {
+                    search_changed(q) => { root.applications_search(q); }
+                    page_changed(p) => { root.applications_page_change(p); }
+                    uninstall_selected => { root.applications_uninstall(); }
+                }
+
+                if root.current_page == 3: StartupPage {
+                    add_app_clicked => { root.startup_add_app(); }
+                }
+
+                if root.current_page == 4: SettingsPage {
+                    theme_mode: root.theme_mode;
+                    current_lang: root.current_lang;
+                    theme_changed(m) => { root.settings_theme_changed(m); }
+                    lang_changed(l) => { root.settings_lang_changed(l); }
+                    autostart_toggled(v) => { root.settings_autostart_toggled(v); }
+                    start_minimized_toggled(v) => { root.settings_start_minimized_toggled(v); }
+                    start_in_tray_toggled(v) => { root.settings_start_in_tray_toggled(v); }
+                    confirm_delete_toggled(v) => { root.settings_confirm_delete_toggled(v); }
+                    show_hidden_toggled(v) => { root.settings_show_hidden_toggled(v); }
+                    open_logs_clicked => { root.settings_open_logs_clicked(); }
+                }
+            }
+        }
+    }
+}

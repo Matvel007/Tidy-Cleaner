@@ -1,0 +1,81 @@
+import { Theme } from "../theme/Palette.slint";
+import { Typography } from "../theme/Typography.slint";
+import { I18n } from "../I18n.slint";
+import { Button } from "../components/Button.slint";
+import { Card } from "../components/Card.slint";
+import { IconCleanup } from "../components/Icons.slint";
+
+export component CleanupPage inherits VerticalLayout {
+    in property <bool> is_scanning: false;
+    
+    callback start_fast_scan();
+    callback start_full_scan();
+    callback clean_selected();
+
+    padding: 24px;
+    spacing: 20px;
+
+    // Header scan actions
+    HorizontalLayout {
+        spacing: 16px;
+
+        Button {
+            text: I18n.cleanup_fast_scan;
+            variant: "primary";
+            custom_height: 42px;
+            enabled: !root.is_scanning;
+            clicked => { root.start_fast_scan(); }
+        }
+
+        Button {
+            text: I18n.cleanup_full_scan;
+            variant: "secondary";
+            custom_height: 42px;
+            enabled: !root.is_scanning;
+            clicked => { root.start_full_scan(); }
+        }
+
+        Rectangle { vertical-stretch: 0; }
+
+        Button {
+            text: I18n.cleanup_clean_selected;
+            variant: "danger";
+            custom_height: 42px;
+            enabled: false;
+            clicked => { root.clean_selected(); }
+        }
+    }
+
+    // Empty / initial state
+    Card {
+        vertical-stretch: 1;
+
+        VerticalLayout {
+            alignment: center;
+            spacing: 14px;
+
+            IconCleanup {
+                x: (parent.width - self.width) / 2;
+                icon_size: 48px;
+                icon_color: Theme.text_muted;
+            }
+
+            Text {
+                text: I18n.cleanup_empty_title;
+                font-family: Typography.font_family;
+                font-size: Typography.size_lg;
+                font-weight: Typography.weight_semibold;
+                color: Theme.text_primary;
+                horizontal-alignment: center;
+            }
+
+            Text {
+                text: I18n.cleanup_empty_desc;
+                font-family: Typography.font_family;
+                font-size: Typography.size_base;
+                color: Theme.text_muted;
+                horizontal-alignment: center;
+            }
+        }
+    }
+}
