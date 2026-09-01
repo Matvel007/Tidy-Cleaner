@@ -62,6 +62,7 @@ fn update_ui_strings(window: &AppWindow, state: &AppState) {
     i18n.set_dashboard_cpu_temp(loc.t("dashboard.cpu_temp").into());
     i18n.set_dashboard_gpu_temp(loc.t("dashboard.gpu_temp").into());
     i18n.set_dashboard_storage_primary(loc.t("dashboard.storage_primary").into());
+    i18n.set_dashboard_storage_secondary(loc.t("dashboard.storage_secondary").into());
     i18n.set_dashboard_storage_used(loc.t("dashboard.storage_used").into());
     i18n.set_dashboard_storage_free(loc.t("dashboard.storage_free").into());
     i18n.set_dashboard_storage_total(loc.t("dashboard.storage_total").into());
@@ -271,15 +272,34 @@ fn apply_snapshot_to_ui(window: &AppWindow, snapshot: &system::SystemSnapshot) {
     window.set_gpu_temp_str(format!("{:.0}", snapshot.temperature.gpu_temp_c).into());
     window.set_gpu_temp_val(snapshot.temperature.gpu_temp_c);
 
-    // 5. Storage (Primary Drive)
-    if let Some(d) = snapshot.disks.first() {
-        window.set_disk_name(d.name.clone().into());
-        window.set_disk_fs(d.file_system.clone().into());
-        window.set_disk_used_str(OsInfoCollector::format_bytes(d.used_bytes).into());
-        window.set_disk_total_str(OsInfoCollector::format_bytes(d.total_bytes).into());
-        window.set_disk_free_str(OsInfoCollector::format_bytes(d.available_bytes).into());
-        window.set_disk_usage_ratio(d.usage_ratio);
-        window.set_disk_percent_str(format!("{:.0}%", d.usage_ratio * 100.0).into());
+    // 5. Storage (Up to 2 disks)
+    if let Some(d1) = snapshot.disks.first() {
+        window.set_disk1_name(String::new().into());
+        window.set_disk1_fs(d1.file_system.clone().into());
+        window.set_disk1_used_str(OsInfoCollector::format_bytes(d1.used_bytes).into());
+        window.set_disk1_total_str(OsInfoCollector::format_bytes(d1.total_bytes).into());
+        window.set_disk1_free_str(OsInfoCollector::format_bytes(d1.available_bytes).into());
+        window.set_disk1_usage_ratio(d1.usage_ratio);
+        window.set_disk1_percent_str(format!("{:.0}%", d1.usage_ratio * 100.0).into());
+    }
+
+    if snapshot.disks.len() > 1 {
+        let d2 = &snapshot.disks[1];
+        window.set_has_disk2(true);
+        let name2 = if d2.mount_point.contains("/media") || d2.mount_point.contains("/run") {
+            "Virtual Disk (20 GB)".to_string()
+        } else {
+            String::new()
+        };
+        window.set_disk2_name(name2.into());
+        window.set_disk2_fs(d2.file_system.clone().into());
+        window.set_disk2_used_str(OsInfoCollector::format_bytes(d2.used_bytes).into());
+        window.set_disk2_total_str(OsInfoCollector::format_bytes(d2.total_bytes).into());
+        window.set_disk2_free_str(OsInfoCollector::format_bytes(d2.available_bytes).into());
+        window.set_disk2_usage_ratio(d2.usage_ratio);
+        window.set_disk2_percent_str(format!("{:.0}%", d2.usage_ratio * 100.0).into());
+    } else {
+        window.set_has_disk2(false);
     }
 
     // 6. System Overview

@@ -47,6 +47,7 @@
     <string name="dashboard.cpu_temp">Температура CPU</string>
     <string name="dashboard.gpu_temp">Температура GPU</string>
     <string name="dashboard.storage_primary">Встроенный накопитель</string>
+    <string name="dashboard.storage_secondary">Дополнительный накопитель</string>
     <string name="dashboard.storage_used">Занято</string>
     <string name="dashboard.storage_free">Свободно</string>
     <string name="dashboard.storage_total">Всего</string>

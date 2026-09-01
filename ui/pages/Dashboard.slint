@@ -33,14 +33,24 @@ export component DashboardPage inherits VerticalLayout {
     in property <string> gpu_temp_str: "0";
     in property <float> gpu_temp_val: 0.0;
 
-    // Storage (Primary Drive)
-    in property <string> disk_name: I18n.dashboard_storage_primary;
-    in property <string> disk_fs: "btrfs";
-    in property <string> disk_used_str: "0 GB";
-    in property <string> disk_total_str: "0 GB";
-    in property <string> disk_free_str: "0 GB";
-    in property <float> disk_usage_ratio: 0.0;
-    in property <string> disk_percent_str: "0%";
+    // Primary Disk (Disk 1)
+    in property <string> disk1_name: I18n.dashboard_storage_primary;
+    in property <string> disk1_fs: "btrfs";
+    in property <string> disk1_used_str: "0 GB";
+    in property <string> disk1_total_str: "0 GB";
+    in property <string> disk1_free_str: "0 GB";
+    in property <float> disk1_usage_ratio: 0.0;
+    in property <string> disk1_percent_str: "0%";
+
+    // Secondary Disk (Disk 2)
+    in property <bool> has_disk2: false;
+    in property <string> disk2_name: I18n.dashboard_storage_secondary;
+    in property <string> disk2_fs: "btrfs";
+    in property <string> disk2_used_str: "0 GB";
+    in property <string> disk2_total_str: "0 GB";
+    in property <string> disk2_free_str: "0 GB";
+    in property <float> disk2_usage_ratio: 0.0;
+    in property <string> disk2_percent_str: "0%";
 
     // System Overview
     in property <string> os_name: "Linux";
@@ -48,222 +58,311 @@ export component DashboardPage inherits VerticalLayout {
     in property <string> hostname: "localhost";
     in property <string> uptime_str: "0s";
 
-    padding: 16px;
-    spacing: 14px;
-    alignment: start;
+    padding: 14px;
+    spacing: 12px;
 
-    // TOP ROW: 4 Cards (CPU, GPU, RAM Gauges + Temperature Card)
     HorizontalLayout {
         spacing: 12px;
-        height: 204px;
 
-        // 1. CPU Gauge
-        CircularGauge {
-            horizontal-stretch: 1;
-            title: "CPU";
-            value_str: root.cpu_usage_str;
-            subtext_top: root.cpu_freq_str;
-            subtext_bottom: root.cpu_brand + " • " + root.cpu_cores_str + " " + I18n.dashboard_cores_label;
-            ring_color: Theme.cpu_chart;
-            arc_path: root.cpu_arc_path;
-        }
+        // LEFT SECTION: 3 Wide Circular Gauges (Top) and Full Storage Card (Bottom)
+        VerticalLayout {
+            horizontal-stretch: 2.8;
+            spacing: 12px;
 
-        // 2. GPU Gauge
-        CircularGauge {
-            horizontal-stretch: 1;
-            title: "GPU";
-            value_str: root.gpu_usage_str;
-            subtext_top: root.gpu_vram_str;
-            subtext_bottom: root.gpu_name;
-            ring_color: #10b981;
-            arc_path: root.gpu_arc_path;
-        }
-
-        // 3. RAM Gauge
-        CircularGauge {
-            horizontal-stretch: 1;
-            title: "RAM";
-            value_str: root.ram_usage_str;
-            subtext_top: root.ram_used_str + " / " + root.ram_total_str;
-            subtext_bottom: I18n.common_free + ": " + root.ram_available_str;
-            ring_color: Theme.ram_chart;
-            arc_path: root.ram_arc_path;
-        }
-
-        // 4. Temperature Card (CPU & GPU)
-        TemperatureCard {
-            horizontal-stretch: 1;
-            cpu_temp_str: root.cpu_temp_str;
-            cpu_temp_val: root.cpu_temp_val;
-            gpu_temp_str: root.gpu_temp_str;
-            gpu_temp_val: root.gpu_temp_val;
-        }
-    }
-
-    // BOTTOM ROW: Storage (Left) & Compact System Info (Right)
-    HorizontalLayout {
-        spacing: 12px;
-        height: 170px;
-
-        // Storage Card (Primary Drive)
-        Card {
-            horizontal-stretch: 1;
-            padding_horizontal: 18px;
-            padding_vertical: 14px;
-
-            VerticalLayout {
+            // TOP ROW: 3 Circular Gauges
+            HorizontalLayout {
                 spacing: 12px;
-                alignment: space-between;
+                height: 200px;
 
-                // Header
-                HorizontalLayout {
-                    alignment: space-between;
-
-                    HorizontalLayout {
-                        spacing: 8px;
-                        alignment: start;
-
-                        IconDisk {
-                            y: (parent.height - self.height) / 2;
-                            icon_size: 16px;
-                        }
-
-                        Text {
-                            text: I18n.dashboard_storage_primary;
-                            font-family: Typography.font_family;
-                            font-size: Typography.size_base;
-                            font-weight: Typography.weight_semibold;
-                            color: Theme.text_primary;
-                            vertical-alignment: center;
-                        }
-                    }
-
-                    Text {
-                        text: root.disk_percent_str;
-                        font-family: Typography.font_mono;
-                        font-size: Typography.size_sm;
-                        font-weight: Typography.weight_bold;
-                        color: Theme.text_primary;
-                        vertical-alignment: center;
-                    }
+                // 1. CPU Gauge
+                CircularGauge {
+                    horizontal-stretch: 1;
+                    title: "CPU";
+                    value_str: root.cpu_usage_str;
+                    subtext_top: root.cpu_freq_str;
+                    subtext_bottom: root.cpu_brand + " • " + root.cpu_cores_str + " " + I18n.dashboard_cores_label;
+                    ring_color: Theme.cpu_chart;
+                    arc_path: root.cpu_arc_path;
                 }
 
-                // Progress Bar
-                Rectangle {
-                    height: 8px;
-                    border-radius: 4px;
-                    background: Theme.surface_secondary;
-                    clip: true;
-
-                    Rectangle {
-                        x: 0px;
-                        y: 0px;
-                        width: parent.width * Math.min(1.0, Math.max(0.0, root.disk_usage_ratio));
-                        height: 100%;
-                        border-radius: 4px;
-                        background: root.disk_usage_ratio > 0.9 ? Theme.danger :
-                            root.disk_usage_ratio > 0.75 ? Theme.warning : Theme.disk_chart;
-
-                        animate width { duration: 250ms; easing: ease-out; }
-                    }
+                // 2. GPU Gauge
+                CircularGauge {
+                    horizontal-stretch: 1;
+                    title: "GPU";
+                    value_str: root.gpu_usage_str;
+                    subtext_top: root.gpu_vram_str;
+                    subtext_bottom: root.gpu_name;
+                    ring_color: #10b981;
+                    arc_path: root.gpu_arc_path;
                 }
 
-                // Details Grid
-                HorizontalLayout {
+                // 3. RAM Gauge
+                CircularGauge {
+                    horizontal-stretch: 1;
+                    title: "RAM";
+                    value_str: root.ram_usage_str;
+                    subtext_top: root.ram_used_str + " / " + root.ram_total_str;
+                    subtext_bottom: I18n.common_free + ": " + root.ram_available_str;
+                    ring_color: Theme.ram_chart;
+                    arc_path: root.ram_arc_path;
+                }
+            }
+
+            // BOTTOM ROW: Storage Card (Up to 2 Disks)
+            Card {
+                height: 170px;
+                padding_horizontal: 18px;
+                padding_vertical: 14px;
+
+                VerticalLayout {
+                    spacing: root.has_disk2 ? 8px : 12px;
                     alignment: space-between;
 
+                    // Disk 1 Section
                     VerticalLayout {
-                        spacing: 2px;
-                        Text { text: I18n.dashboard_storage_used; font-size: Typography.size_xs; color: Theme.text_muted; }
-                        Text { text: root.disk_used_str; font-size: Typography.size_xs; font-weight: Typography.weight_medium; color: Theme.text_primary; }
+                        spacing: 6px;
+
+                        // Header
+                        HorizontalLayout {
+                            alignment: space-between;
+
+                            HorizontalLayout {
+                                spacing: 8px;
+                                alignment: start;
+
+                                IconDisk {
+                                    y: (parent.height - self.height) / 2;
+                                    icon_size: 15px;
+                                }
+
+                                Text {
+                                    text: root.disk1_name != "" ? root.disk1_name : I18n.dashboard_storage_primary;
+                                    font-family: Typography.font_family;
+                                    font-size: root.has_disk2 ? Typography.size_sm : Typography.size_base;
+                                    font-weight: Typography.weight_semibold;
+                                    color: Theme.text_primary;
+                                    vertical-alignment: center;
+                                }
+                            }
+
+                            Text {
+                                text: root.disk1_percent_str;
+                                font-family: Typography.font_mono;
+                                font-size: Typography.size_sm;
+                                font-weight: Typography.weight_bold;
+                                color: Theme.text_primary;
+                                vertical-alignment: center;
+                            }
+                        }
+
+                        // Progress Bar
+                        Rectangle {
+                            height: 6px;
+                            border-radius: 3px;
+                            background: Theme.surface_secondary;
+                            clip: true;
+
+                            Rectangle {
+                                x: 0px;
+                                y: 0px;
+                                width: parent.width * Math.min(1.0, Math.max(0.0, root.disk1_usage_ratio));
+                                height: 100%;
+                                border-radius: 3px;
+                                background: root.disk1_usage_ratio > 0.9 ? Theme.danger :
+                                    root.disk1_usage_ratio > 0.75 ? Theme.warning : Theme.disk_chart;
+
+                                animate width { duration: 250ms; easing: ease-out; }
+                            }
+                        }
+
+                        // Details Grid
+                        HorizontalLayout {
+                            alignment: space-between;
+
+                            Text {
+                                text: I18n.dashboard_storage_used + ": " + root.disk1_used_str;
+                                font-size: Typography.size_xs;
+                                color: Theme.text_muted;
+                            }
+                            Text {
+                                text: I18n.dashboard_storage_free + ": " + root.disk1_free_str;
+                                font-size: Typography.size_xs;
+                                color: Theme.text_muted;
+                            }
+                            Text {
+                                text: I18n.dashboard_storage_total + ": " + root.disk1_total_str;
+                                font-size: Typography.size_xs;
+                                color: Theme.text_muted;
+                            }
+                            Text {
+                                text: root.disk1_fs;
+                                font-size: Typography.size_xs;
+                                color: Theme.text_secondary;
+                            }
+                        }
                     }
 
-                    VerticalLayout {
-                        spacing: 2px;
-                        Text { text: I18n.dashboard_storage_free; font-size: Typography.size_xs; color: Theme.text_muted; }
-                        Text { text: root.disk_free_str; font-size: Typography.size_xs; font-weight: Typography.weight_medium; color: Theme.text_primary; }
-                    }
+                    // Disk 2 Section (if present)
+                    if root.has_disk2: VerticalLayout {
+                        spacing: 6px;
 
-                    VerticalLayout {
-                        spacing: 2px;
-                        Text { text: I18n.dashboard_storage_total; font-size: Typography.size_xs; color: Theme.text_muted; }
-                        Text { text: root.disk_total_str; font-size: Typography.size_xs; font-weight: Typography.weight_medium; color: Theme.text_primary; }
-                    }
+                        // Header
+                        HorizontalLayout {
+                            alignment: space-between;
 
-                    VerticalLayout {
-                        spacing: 2px;
-                        Text { text: I18n.dashboard_storage_filesystem; font-size: Typography.size_xs; color: Theme.text_muted; }
-                        Text { text: root.disk_fs; font-size: Typography.size_xs; font-weight: Typography.weight_medium; color: Theme.text_secondary; }
+                            HorizontalLayout {
+                                spacing: 8px;
+                                alignment: start;
+
+                                IconDisk {
+                                    y: (parent.height - self.height) / 2;
+                                    icon_size: 15px;
+                                }
+
+                                Text {
+                                    text: root.disk2_name != "" ? root.disk2_name : I18n.dashboard_storage_secondary;
+                                    font-family: Typography.font_family;
+                                    font-size: Typography.size_sm;
+                                    font-weight: Typography.weight_semibold;
+                                    color: Theme.text_primary;
+                                    vertical-alignment: center;
+                                }
+                            }
+
+                            Text {
+                                text: root.disk2_percent_str;
+                                font-family: Typography.font_mono;
+                                font-size: Typography.size_sm;
+                                font-weight: Typography.weight_bold;
+                                color: Theme.text_primary;
+                                vertical-alignment: center;
+                            }
+                        }
+
+                        // Progress Bar
+                        Rectangle {
+                            height: 6px;
+                            border-radius: 3px;
+                            background: Theme.surface_secondary;
+                            clip: true;
+
+                            Rectangle {
+                                x: 0px;
+                                y: 0px;
+                                width: parent.width * Math.min(1.0, Math.max(0.0, root.disk2_usage_ratio));
+                                height: 100%;
+                                border-radius: 3px;
+                                background: root.disk2_usage_ratio > 0.9 ? Theme.danger :
+                                    root.disk2_usage_ratio > 0.75 ? Theme.warning : Theme.disk_chart;
+
+                                animate width { duration: 250ms; easing: ease-out; }
+                            }
+                        }
+
+                        // Details Grid
+                        HorizontalLayout {
+                            alignment: space-between;
+
+                            Text {
+                                text: I18n.dashboard_storage_used + ": " + root.disk2_used_str;
+                                font-size: Typography.size_xs;
+                                color: Theme.text_muted;
+                            }
+                            Text {
+                                text: I18n.dashboard_storage_free + ": " + root.disk2_free_str;
+                                font-size: Typography.size_xs;
+                                color: Theme.text_muted;
+                            }
+                            Text {
+                                text: I18n.dashboard_storage_total + ": " + root.disk2_total_str;
+                                font-size: Typography.size_xs;
+                                color: Theme.text_muted;
+                            }
+                            Text {
+                                text: root.disk2_fs;
+                                font-size: Typography.size_xs;
+                                color: Theme.text_secondary;
+                            }
+                        }
                     }
                 }
             }
         }
 
-        // Compact Terminal-Style System Info Card
-        Card {
-            horizontal-stretch: 1;
-            padding_horizontal: 18px;
-            padding_vertical: 14px;
+        // RIGHT SECTION: Temperature (Top) and System Overview (Bottom)
+        // Expanded width for high-density elegance!
+        VerticalLayout {
+            horizontal-stretch: 1.55;
+            spacing: 12px;
 
-            VerticalLayout {
-                spacing: 6px;
-                alignment: space-between;
+            // Top: Temperature Card
+            TemperatureCard {
+                height: 200px;
+                cpu_temp_str: root.cpu_temp_str;
+                cpu_temp_val: root.cpu_temp_val;
+                gpu_temp_str: root.gpu_temp_str;
+                gpu_temp_val: root.gpu_temp_val;
+            }
 
-                // Header Title
-                HorizontalLayout {
+            // Bottom: System Overview Card (exact same width as Temperature!)
+            Card {
+                height: 170px;
+                padding_horizontal: 18px;
+                padding_vertical: 14px;
+
+                VerticalLayout {
+                    spacing: 8px;
                     alignment: space-between;
-                    Text {
-                        text: I18n.dashboard_system_overview;
-                        font-family: Typography.font_family;
-                        font-size: Typography.size_xs;
-                        font-weight: Typography.weight_bold;
-                        color: Theme.text_secondary;
+
+                    // Header Title
+                    HorizontalLayout {
+                        height: 18px;
+                        alignment: space-between;
+                        Text {
+                            text: I18n.dashboard_system_overview;
+                            font-family: Typography.font_family;
+                            font-size: Typography.size_xs;
+                            font-weight: Typography.weight_bold;
+                            color: Theme.text_secondary;
+                            vertical-alignment: center;
+                        }
                     }
-                }
 
-                // Line 1: OS
-                HorizontalLayout {
-                    spacing: 8px;
-                    alignment: start;
-                    Text { text: "❯"; font-family: Typography.font_mono; font-size: Typography.size_xs; font-weight: Typography.weight_bold; color: Theme.accent; }
-                    Text { text: "OS:"; font-family: Typography.font_mono; font-size: Typography.size_xs; font-weight: Typography.weight_bold; color: Theme.text_secondary; width: 60px; }
-                    Text { text: root.os_name; font-family: Typography.font_family; font-size: Typography.size_xs; color: Theme.text_primary; overflow: elide; }
-                }
+                    // Line 1: OS
+                    HorizontalLayout {
+                        spacing: 8px;
+                        alignment: start;
+                        Text { text: "❯"; font-family: Typography.font_mono; font-size: Typography.size_xs; font-weight: Typography.weight_bold; color: Theme.accent; }
+                        Text { text: "OS:"; font-family: Typography.font_mono; font-size: Typography.size_xs; font-weight: Typography.weight_bold; color: Theme.text_secondary; width: 60px; }
+                        Text { text: root.os_name; font-family: Typography.font_family; font-size: Typography.size_xs; color: Theme.text_primary; overflow: elide; }
+                    }
 
-                // Line 2: Host
-                HorizontalLayout {
-                    spacing: 8px;
-                    alignment: start;
-                    Text { text: "❯"; font-family: Typography.font_mono; font-size: Typography.size_xs; font-weight: Typography.weight_bold; color: Theme.accent; }
-                    Text { text: "Host:"; font-family: Typography.font_mono; font-size: Typography.size_xs; font-weight: Typography.weight_bold; color: Theme.text_secondary; width: 60px; }
-                    Text { text: root.hostname; font-family: Typography.font_mono; font-size: Typography.size_xs; color: Theme.text_primary; overflow: elide; }
-                }
+                    // Line 2: Host
+                    HorizontalLayout {
+                        spacing: 8px;
+                        alignment: start;
+                        Text { text: "❯"; font-family: Typography.font_mono; font-size: Typography.size_xs; font-weight: Typography.weight_bold; color: Theme.accent; }
+                        Text { text: "Host:"; font-family: Typography.font_mono; font-size: Typography.size_xs; font-weight: Typography.weight_bold; color: Theme.text_secondary; width: 60px; }
+                        Text { text: root.hostname; font-family: Typography.font_mono; font-size: Typography.size_xs; color: Theme.text_primary; overflow: elide; }
+                    }
 
-                // Line 3: Kernel
-                HorizontalLayout {
-                    spacing: 8px;
-                    alignment: start;
-                    Text { text: "❯"; font-family: Typography.font_mono; font-size: Typography.size_xs; font-weight: Typography.weight_bold; color: Theme.accent; }
-                    Text { text: "Kernel:"; font-family: Typography.font_mono; font-size: Typography.size_xs; font-weight: Typography.weight_bold; color: Theme.text_secondary; width: 60px; }
-                    Text { text: root.kernel_version; font-family: Typography.font_mono; font-size: Typography.size_xs; color: Theme.text_primary; overflow: elide; }
-                }
+                    // Line 3: Kernel
+                    HorizontalLayout {
+                        spacing: 8px;
+                        alignment: start;
+                        Text { text: "❯"; font-family: Typography.font_mono; font-size: Typography.size_xs; font-weight: Typography.weight_bold; color: Theme.accent; }
+                        Text { text: "Kernel:"; font-family: Typography.font_mono; font-size: Typography.size_xs; font-weight: Typography.weight_bold; color: Theme.text_secondary; width: 60px; }
+                        Text { text: root.kernel_version; font-family: Typography.font_mono; font-size: Typography.size_xs; color: Theme.text_primary; overflow: elide; }
+                    }
 
-                // Line 4: Uptime
-                HorizontalLayout {
-                    spacing: 8px;
-                    alignment: start;
-                    Text { text: "❯"; font-family: Typography.font_mono; font-size: Typography.size_xs; font-weight: Typography.weight_bold; color: Theme.accent; }
-                    Text { text: "Uptime:"; font-family: Typography.font_mono; font-size: Typography.size_xs; font-weight: Typography.weight_bold; color: Theme.text_secondary; width: 60px; }
-                    Text { text: root.uptime_str; font-family: Typography.font_mono; font-size: Typography.size_xs; font-weight: Typography.weight_semibold; color: Theme.accent; }
-                }
-
-                // Line 5: Memory
-                HorizontalLayout {
-                    spacing: 8px;
-                    alignment: start;
-                    Text { text: "❯"; font-family: Typography.font_mono; font-size: Typography.size_xs; font-weight: Typography.weight_bold; color: Theme.accent; }
-                    Text { text: "Memory:"; font-family: Typography.font_mono; font-size: Typography.size_xs; font-weight: Typography.weight_bold; color: Theme.text_secondary; width: 60px; }
-                    Text { text: root.ram_used_str + " / " + root.ram_total_str + " (" + root.ram_usage_str + "%)"; font-family: Typography.font_mono; font-size: Typography.size_xs; color: Theme.text_primary; }
+                    // Line 4: Uptime
+                    HorizontalLayout {
+                        spacing: 8px;
+                        alignment: start;
+                        Text { text: "❯"; font-family: Typography.font_mono; font-size: Typography.size_xs; font-weight: Typography.weight_bold; color: Theme.accent; }
+                        Text { text: "Uptime:"; font-family: Typography.font_mono; font-size: Typography.size_xs; font-weight: Typography.weight_bold; color: Theme.text_secondary; width: 60px; }
+                        Text { text: root.uptime_str; font-family: Typography.font_mono; font-size: Typography.size_xs; font-weight: Typography.weight_semibold; color: Theme.accent; }
+                    }
                 }
             }
         }

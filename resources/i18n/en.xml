@@ -47,6 +47,7 @@
     <string name="dashboard.cpu_temp">CPU Temp</string>
     <string name="dashboard.gpu_temp">GPU Temp</string>
     <string name="dashboard.storage_primary">Internal Storage</string>
+    <string name="dashboard.storage_secondary">Secondary Storage</string>
     <string name="dashboard.storage_used">Used</string>
     <string name="dashboard.storage_free">Free</string>
     <string name="dashboard.storage_total">Total</string>

@@ -16,8 +16,9 @@ export component TemperatureCard inherits Card {
         spacing: 12px;
         alignment: space-between;
 
-        // Header Title
+        // Header Title (exact same height and alignment as CircularGauge)
         HorizontalLayout {
+            height: 18px;
             alignment: space-between;
 
             Text {
@@ -26,6 +27,7 @@ export component TemperatureCard inherits Card {
                 font-size: Typography.size_xs;
                 font-weight: Typography.weight_bold;
                 color: Theme.text_secondary;
+                vertical-alignment: center;
             }
 
             Text {
@@ -33,6 +35,7 @@ export component TemperatureCard inherits Card {
                 font-family: Typography.font_mono;
                 font-size: Typography.size_xs;
                 color: Theme.text_muted;
+                vertical-alignment: center;
             }
         }
 

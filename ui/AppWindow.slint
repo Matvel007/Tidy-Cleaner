@@ -13,10 +13,10 @@ export { Theme, Typography, I18n }
 
 export component AppWindow inherits Window {
     title: I18n.app_title;
-    preferred-width: 1040px;
-    preferred-height: 680px;
-    min-width: 840px;
-    min-height: 560px;
+    preferred-width: 960px;
+    preferred-height: 560px;
+    min-width: 800px;
+    min-height: 480px;
     background: Theme.background;
     default-font-family: Typography.font_family;
 
@@ -52,14 +52,24 @@ export component AppWindow inherits Window {
     in-out property <string> gpu_temp_str: "0";
     in-out property <float> gpu_temp_val: 0.0;
 
-    // Storage
-    in-out property <string> disk_name: "";
-    in-out property <string> disk_fs: "btrfs";
-    in-out property <string> disk_used_str: "0 GB";
-    in-out property <string> disk_total_str: "0 GB";
-    in-out property <string> disk_free_str: "0 GB";
-    in-out property <float> disk_usage_ratio: 0.0;
-    in-out property <string> disk_percent_str: "0%";
+    // Primary Disk (Disk 1)
+    in-out property <string> disk1_name: "";
+    in-out property <string> disk1_fs: "btrfs";
+    in-out property <string> disk1_used_str: "0 GB";
+    in-out property <string> disk1_total_str: "0 GB";
+    in-out property <string> disk1_free_str: "0 GB";
+    in-out property <float> disk1_usage_ratio: 0.0;
+    in-out property <string> disk1_percent_str: "0%";
+
+    // Secondary Disk (Disk 2)
+    in-out property <bool> has_disk2: false;
+    in-out property <string> disk2_name: "";
+    in-out property <string> disk2_fs: "ext4";
+    in-out property <string> disk2_used_str: "0 GB";
+    in-out property <string> disk2_total_str: "0 GB";
+    in-out property <string> disk2_free_str: "0 GB";
+    in-out property <float> disk2_usage_ratio: 0.0;
+    in-out property <string> disk2_percent_str: "0%";
 
     // System Overview
     in-out property <string> os_name: "-";
@@ -149,13 +159,22 @@ export component AppWindow inherits Window {
                     gpu_temp_str: root.gpu_temp_str;
                     gpu_temp_val: root.gpu_temp_val;
 
-                    disk_name: root.disk_name;
-                    disk_fs: root.disk_fs;
-                    disk_used_str: root.disk_used_str;
-                    disk_total_str: root.disk_total_str;
-                    disk_free_str: root.disk_free_str;
-                    disk_usage_ratio: root.disk_usage_ratio;
-                    disk_percent_str: root.disk_percent_str;
+                    disk1_name: root.disk1_name;
+                    disk1_fs: root.disk1_fs;
+                    disk1_used_str: root.disk1_used_str;
+                    disk1_total_str: root.disk1_total_str;
+                    disk1_free_str: root.disk1_free_str;
+                    disk1_usage_ratio: root.disk1_usage_ratio;
+                    disk1_percent_str: root.disk1_percent_str;
+
+                    has_disk2: root.has_disk2;
+                    disk2_name: root.disk2_name;
+                    disk2_fs: root.disk2_fs;
+                    disk2_used_str: root.disk2_used_str;
+                    disk2_total_str: root.disk2_total_str;
+                    disk2_free_str: root.disk2_free_str;
+                    disk2_usage_ratio: root.disk2_usage_ratio;
+                    disk2_percent_str: root.disk2_percent_str;
 
                     os_name: root.os_name;
                     kernel_version: root.kernel_version;

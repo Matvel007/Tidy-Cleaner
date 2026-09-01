@@ -14,9 +14,15 @@ impl DiskCollector {
             let total_bytes = disk.total_space();
             let available_bytes = disk.available_space();
             let used_bytes = total_bytes.saturating_sub(available_bytes);
+            let mount_point = disk.mount_point().to_string_lossy().to_string();
+            let file_system = disk.file_system().to_string_lossy().to_string();
 
-            // Skip tiny pseudo-filesystems (< 100MB)
-            if total_bytes < 100 * 1024 * 1024 {
+            // Skip tiny pseudo-filesystems (< 500MB) or boot/efi partitions
+            if total_bytes < 500 * 1024 * 1024
+                || mount_point == "/boot"
+                || mount_point.starts_with("/boot/")
+                || mount_point.starts_with("/efi")
+            {
                 continue;
             }
 
@@ -25,9 +31,6 @@ impl DiskCollector {
             } else {
                 0.0
             };
-
-            let mount_point = disk.mount_point().to_string_lossy().to_string();
-            let file_system = disk.file_system().to_string_lossy().to_string();
 
             // Deduplicate subvolumes that share the exact same total and used size (e.g. BTRFS subvolumes)
             let dedup_key = (total_bytes, used_bytes);
@@ -48,6 +51,9 @@ impl DiskCollector {
                 usage_ratio,
             });
         }
+
+        // Sort by total bytes descending so main storage (950 GB) is first, followed by secondary storage (20 GB)
+        results.sort_by_key(|a| std::cmp::Reverse(a.total_bytes));
 
         if results.is_empty() {
             results.push(DiskInfo {
