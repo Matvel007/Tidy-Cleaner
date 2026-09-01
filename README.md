@@ -22,6 +22,12 @@
 
 **Tidy Cleaner** is a modern, lightweight, and safe alternative to system cleaners for Linux. Combining real-time hardware telemetry, disk management, and intelligent cleaning workflows, it provides a native frameless desktop interface without sacrificing system security or performance.
 
+<div align="center">
+
+![Tidy Cleaner Dashboard](resources/screenshots/dashboard.png)
+
+</div>
+
 ---
 
 ## ✨ Features

@@ -5,7 +5,7 @@ edition = "2021"
 build = "build.rs"
 
 [dependencies]
-slint = "1.9"
+slint = { version = "1.9", features = ["unstable-winit-030"] }
 tokio = { version = "1.40", features = ["full"] }
 sysinfo = "0.33"
 serde = { version = "1.0", features = ["derive"] }
