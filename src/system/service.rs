@@ -1,5 +1,6 @@
 use super::cpu::CpuCollector;
 use super::disks::DiskCollector;
+use super::gpu::GpuCollector;
 use super::memory::MemoryCollector;
 use super::models::SystemSnapshot;
 use super::os_info::OsInfoCollector;
@@ -38,12 +39,14 @@ impl SystemMonitorService {
         let mut mem_col = self.mem_collector.lock().unwrap();
 
         let cpu = cpu_col.collect(&mut sys);
+        let gpu = GpuCollector::collect();
         let memory = mem_col.collect(&mut sys);
         let disks = DiskCollector::collect_disks();
         let overview = OsInfoCollector::collect_overview(&sys);
 
         SystemSnapshot {
             cpu,
+            gpu,
             memory,
             disks,
             overview,

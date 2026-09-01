@@ -7,7 +7,6 @@ mod theme;
 
 use app::AppState;
 use localization::Language;
-use slint::{ModelRc, VecModel};
 use std::sync::Arc;
 use std::time::Duration;
 use system::{OsInfoCollector, SystemMonitorService};
@@ -222,43 +221,54 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 }
 
 fn apply_snapshot_to_ui(window: &AppWindow, snapshot: &system::SystemSnapshot) {
-    // CPU
+    // 1. CPU
     window.set_cpu_usage_str(format!("{:.1}", snapshot.cpu.usage_percent).into());
     window.set_cpu_cores_str(format!("{}", snapshot.cpu.core_count).into());
     window.set_cpu_freq_str(format!("{} MHz", snapshot.cpu.frequency_mhz).into());
     window.set_cpu_brand(snapshot.cpu.brand_name.clone().into());
-    window.set_cpu_history(ModelRc::new(VecModel::from(snapshot.cpu.history.clone())));
+    let cpu_arc = system::generate_arc_svg_path(60.0, 60.0, 50.0, snapshot.cpu.usage_percent);
+    window.set_cpu_arc_path(cpu_arc.into());
 
-    // RAM
+    // 2. GPU
+    window.set_gpu_usage_str(format!("{:.1}", snapshot.gpu.usage_percent).into());
+    window.set_gpu_name(snapshot.gpu.name.clone().into());
+    let gpu_vram_formatted = if snapshot.gpu.total_memory_mb > 0 {
+        format!(
+            "{:.1} / {:.1} GB",
+            snapshot.gpu.used_memory_mb as f64 / 1024.0,
+            snapshot.gpu.total_memory_mb as f64 / 1024.0
+        )
+    } else {
+        "Active".to_string()
+    };
+    window.set_gpu_vram_str(gpu_vram_formatted.into());
+    let gpu_arc = system::generate_arc_svg_path(60.0, 60.0, 50.0, snapshot.gpu.usage_percent);
+    window.set_gpu_arc_path(gpu_arc.into());
+
+    // 3. RAM
     window.set_ram_usage_str(format!("{:.1}", snapshot.memory.usage_percent).into());
     window.set_ram_used_str(OsInfoCollector::format_bytes(snapshot.memory.used_bytes).into());
     window.set_ram_available_str(
         OsInfoCollector::format_bytes(snapshot.memory.available_bytes).into(),
     );
     window.set_ram_total_str(OsInfoCollector::format_bytes(snapshot.memory.total_bytes).into());
-    window.set_ram_history(ModelRc::new(VecModel::from(
-        snapshot.memory.history.clone(),
-    )));
+    let ram_arc = system::generate_arc_svg_path(60.0, 60.0, 50.0, snapshot.memory.usage_percent);
+    window.set_ram_arc_path(ram_arc.into());
 
-    // Disks
-    let disk_models: Vec<DiskModel> = snapshot
-        .disks
-        .iter()
-        .map(|d| DiskModel {
-            name: d.name.clone().into(),
-            mount_point: d.mount_point.clone().into(),
-            fs_type: d.file_system.clone().into(),
-            used_formatted: OsInfoCollector::format_bytes(d.used_bytes).into(),
-            total_formatted: OsInfoCollector::format_bytes(d.total_bytes).into(),
-            usage_ratio: d.usage_ratio,
-        })
-        .collect();
-    window.set_disks(ModelRc::new(VecModel::from(disk_models)));
+    // 4. Storage (Primary Drive)
+    if let Some(d) = snapshot.disks.first() {
+        window.set_disk_name(d.name.clone().into());
+        window.set_disk_fs(d.file_system.clone().into());
+        window.set_disk_used_str(OsInfoCollector::format_bytes(d.used_bytes).into());
+        window.set_disk_total_str(OsInfoCollector::format_bytes(d.total_bytes).into());
+        window.set_disk_free_str(OsInfoCollector::format_bytes(d.available_bytes).into());
+        window.set_disk_usage_ratio(d.usage_ratio);
+        window.set_disk_percent_str(format!("{:.0}%", d.usage_ratio * 100.0).into());
+    }
 
-    // System Overview
+    // 5. System Overview
     window.set_os_name(snapshot.overview.os_name.clone().into());
     window.set_kernel_version(snapshot.overview.kernel_version.clone().into());
-    window.set_architecture(snapshot.overview.arch.clone().into());
     window.set_hostname(snapshot.overview.hostname.clone().into());
     window.set_uptime_str(snapshot.overview.uptime_formatted.clone().into());
 }

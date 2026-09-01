@@ -3,18 +3,18 @@ import { Typography } from "theme/Typography.slint";
 import { I18n } from "I18n.slint";
 import { Sidebar } from "components/Sidebar.slint";
 import { TopBar } from "components/TopBar.slint";
-import { DashboardPage, DiskModel } from "pages/Dashboard.slint";
+import { DashboardPage } from "pages/Dashboard.slint";
 import { CleanupPage } from "pages/Cleanup.slint";
 import { ApplicationsPage } from "pages/Applications.slint";
 import { StartupPage } from "pages/Startup.slint";
 import { SettingsPage } from "pages/Settings.slint";
 
-export { Theme, Typography, I18n, DiskModel }
+export { Theme, Typography, I18n }
 
 export component AppWindow inherits Window {
     title: I18n.app_title;
     preferred-width: 1040px;
-    preferred-height: 700px;
+    preferred-height: 680px;
     min-width: 840px;
     min-height: 560px;
     background: Theme.background;
@@ -31,22 +31,33 @@ export component AppWindow inherits Window {
     in-out property <string> cpu_cores_str: "-";
     in-out property <string> cpu_freq_str: "-";
     in-out property <string> cpu_brand: "CPU";
-    in-out property <[float]> cpu_history: [0.0];
+    in-out property <string> cpu_arc_path: "";
+
+    // GPU Metrics
+    in-out property <string> gpu_usage_str: "0.0";
+    in-out property <string> gpu_name: "GPU";
+    in-out property <string> gpu_vram_str: "0 MB";
+    in-out property <string> gpu_arc_path: "";
 
     // RAM Metrics
     in-out property <string> ram_usage_str: "0.0";
     in-out property <string> ram_used_str: "0 GB";
     in-out property <string> ram_available_str: "0 GB";
     in-out property <string> ram_total_str: "0 GB";
-    in-out property <[float]> ram_history: [0.0];
+    in-out property <string> ram_arc_path: "";
 
-    // Disks
-    in-out property <[DiskModel]> disks: [];
+    // Storage
+    in-out property <string> disk_name: "Встроенный накопитель";
+    in-out property <string> disk_fs: "btrfs";
+    in-out property <string> disk_used_str: "0 GB";
+    in-out property <string> disk_total_str: "0 GB";
+    in-out property <string> disk_free_str: "0 GB";
+    in-out property <float> disk_usage_ratio: 0.0;
+    in-out property <string> disk_percent_str: "0%";
 
     // System Overview
     in-out property <string> os_name: "-";
     in-out property <string> kernel_version: "-";
-    in-out property <string> architecture: "-";
     in-out property <string> hostname: "-";
     in-out property <string> uptime_str: "-";
 
@@ -114,19 +125,29 @@ export component AppWindow inherits Window {
                     cpu_cores_str: root.cpu_cores_str;
                     cpu_freq_str: root.cpu_freq_str;
                     cpu_brand: root.cpu_brand;
-                    cpu_history: root.cpu_history;
+                    cpu_arc_path: root.cpu_arc_path;
+
+                    gpu_usage_str: root.gpu_usage_str;
+                    gpu_name: root.gpu_name;
+                    gpu_vram_str: root.gpu_vram_str;
+                    gpu_arc_path: root.gpu_arc_path;
 
                     ram_usage_str: root.ram_usage_str;
                     ram_used_str: root.ram_used_str;
                     ram_available_str: root.ram_available_str;
                     ram_total_str: root.ram_total_str;
-                    ram_history: root.ram_history;
+                    ram_arc_path: root.ram_arc_path;
 
-                    disks: root.disks;
+                    disk_name: root.disk_name;
+                    disk_fs: root.disk_fs;
+                    disk_used_str: root.disk_used_str;
+                    disk_total_str: root.disk_total_str;
+                    disk_free_str: root.disk_free_str;
+                    disk_usage_ratio: root.disk_usage_ratio;
+                    disk_percent_str: root.disk_percent_str;
 
                     os_name: root.os_name;
                     kernel_version: root.kernel_version;
-                    architecture: root.architecture;
                     hostname: root.hostname;
                     uptime_str: root.uptime_str;
                 }

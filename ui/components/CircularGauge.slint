@@ -1,0 +1,94 @@
+import { Theme } from "../theme/Palette.slint";
+import { Typography } from "../theme/Typography.slint";
+import { Card } from "Card.slint";
+
+export component CircularGauge inherits Card {
+    in property <string> title: "METRIC";
+    in property <string> value_str: "0.0";
+    in property <string> subtext_top: "";
+    in property <string> subtext_bottom: "";
+    in property <color> ring_color: Theme.cpu_chart;
+    in property <string> arc_path: "";
+
+    padding_horizontal: 16px;
+    padding_vertical: 14px;
+
+    VerticalLayout {
+        spacing: 10px;
+        alignment: center;
+
+        // Card Header Title with safe spacing
+        HorizontalLayout {
+            spacing: 12px;
+            alignment: space-between;
+
+            Text {
+                text: root.title;
+                font-family: Typography.font_family;
+                font-size: Typography.size_xs;
+                font-weight: Typography.weight_bold;
+                color: Theme.text_secondary;
+                vertical-alignment: center;
+            }
+
+            if root.subtext_top != "": Text {
+                text: root.subtext_top;
+                font-family: Typography.font_mono;
+                font-size: Typography.size_xs;
+                color: Theme.text_muted;
+                vertical-alignment: center;
+                overflow: elide;
+            }
+        }
+
+        // Circular Gauge Visual
+        gauge_area := Rectangle {
+            width: 120px;
+            height: 120px;
+            clip: false;
+
+            // Background Full Ring
+            Path {
+                width: 100%;
+                height: 100%;
+                stroke: Theme.surface_secondary;
+                stroke-width: 8px;
+                commands: "M 60 10 A 50 50 0 1 1 59.99 10 Z";
+            }
+
+            // Foreground Progress Arc
+            if root.arc_path != "": Path {
+                width: 100%;
+                height: 100%;
+                stroke: root.ring_color;
+                stroke-width: 8px;
+                commands: root.arc_path;
+            }
+
+            // Center Percentage Text
+            VerticalLayout {
+                alignment: center;
+                spacing: 0px;
+
+                Text {
+                    text: root.value_str + "%";
+                    font-family: Typography.font_family;
+                    font-size: Typography.size_xl;
+                    font-weight: Typography.weight_bold;
+                    color: Theme.text_primary;
+                    horizontal-alignment: center;
+                }
+            }
+        }
+
+        // Bottom Subtext Info
+        if root.subtext_bottom != "": Text {
+            text: root.subtext_bottom;
+            font-family: Typography.font_family;
+            font-size: Typography.size_xs;
+            color: Theme.text_secondary;
+            horizontal-alignment: center;
+            overflow: elide;
+        }
+    }
+}
