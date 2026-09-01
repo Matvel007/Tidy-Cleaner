@@ -5,19 +5,42 @@ import { I18n } from "../I18n.slint";
 import { StatCard } from "../components/StatCard.slint";
 import { Card } from "../components/Card.slint";
 import { DiskCard } from "../components/DiskCard.slint";
+import { MetricChart } from "../components/MetricChart.slint";
+import { IconCpu, IconRam } from "../components/Icons.slint";
+
+export struct DiskModel {
+    name: string,
+    mount_point: string,
+    fs_type: string,
+    used_formatted: string,
+    total_formatted: string,
+    usage_ratio: float,
+}
 
 export component DashboardPage inherits ScrollView {
-    in property <string> cpu_usage_str: "0";
-    in property <string> cpu_cores_str: "-";
-    in property <string> cpu_freq_str: "-";
-    in property <string> ram_usage_str: "0";
+    // CPU Metrics
+    in property <string> cpu_usage_str: "0.0";
+    in property <string> cpu_cores_str: "0";
+    in property <string> cpu_freq_str: "0 MHz";
+    in property <string> cpu_brand: "CPU";
+    in property <[float]> cpu_history: [0.0];
+
+    // RAM Metrics
+    in property <string> ram_usage_str: "0.0";
     in property <string> ram_used_str: "0 GB";
+    in property <string> ram_available_str: "0 GB";
     in property <string> ram_total_str: "0 GB";
-    in property <string> os_name: "-";
-    in property <string> kernel_version: "-";
-    in property <string> architecture: "-";
-    in property <string> hostname: "-";
-    in property <string> uptime_str: "-";
+    in property <[float]> ram_history: [0.0];
+
+    // Disks
+    in property <[DiskModel]> disks: [];
+
+    // System Overview
+    in property <string> os_name: "Linux";
+    in property <string> kernel_version: "Unknown";
+    in property <string> architecture: "x86_64";
+    in property <string> hostname: "localhost";
+    in property <string> uptime_str: "0s";
 
     viewport-width: self.width;
 
@@ -25,34 +48,197 @@ export component DashboardPage inherits ScrollView {
         padding: 24px;
         spacing: 20px;
 
-        // Top Metrics Row
+        // Top Metrics Grid: CPU & RAM Cards
         HorizontalLayout {
             spacing: 16px;
 
-            StatCard {
-                title: I18n.dashboard_cpu_usage;
-                value: root.cpu_usage_str;
-                unit: "%";
-                subtext: I18n.dashboard_cpu_cores + ": " + root.cpu_cores_str;
-                accent_color: Theme.cpu_chart;
+            // CPU Stat Card
+            Card {
                 horizontal-stretch: 1;
+
+                VerticalLayout {
+                    spacing: 14px;
+
+                    // Header
+                    HorizontalLayout {
+                        alignment: space-between;
+
+                        HorizontalLayout {
+                            spacing: 8px;
+                            alignment: start;
+
+                            IconCpu {
+                                y: (parent.height - self.height) / 2;
+                                icon_size: 16px;
+                            }
+
+                            Text {
+                                text: I18n.dashboard_cpu_usage;
+                                font-family: Typography.font_family;
+                                font-size: Typography.size_sm;
+                                font-weight: Typography.weight_semibold;
+                                color: Theme.text_secondary;
+                                vertical-alignment: center;
+                            }
+                        }
+
+                        Text {
+                            text: root.cpu_freq_str;
+                            font-family: Typography.font_mono;
+                            font-size: Typography.size_xs;
+                            color: Theme.text_muted;
+                            vertical-alignment: center;
+                        }
+                    }
+
+                    // Large percentage number
+                    HorizontalLayout {
+                        spacing: 6px;
+                        alignment: start;
+
+                        Text {
+                            text: root.cpu_usage_str;
+                            font-family: Typography.font_family;
+                            font-size: Typography.size_3xl;
+                            font-weight: Typography.weight_bold;
+                            color: Theme.text_primary;
+                        }
+
+                        Text {
+                            text: "%";
+                            font-family: Typography.font_family;
+                            font-size: Typography.size_lg;
+                            font-weight: Typography.weight_medium;
+                            color: Theme.text_muted;
+                            vertical-alignment: bottom;
+                        }
+                    }
+
+                    // Realtime history chart
+                    MetricChart {
+                        values: root.cpu_history;
+                        chart_color: Theme.cpu_chart;
+                        custom_height: 52px;
+                    }
+
+                    // CPU Footer Info
+                    HorizontalLayout {
+                        alignment: space-between;
+
+                        Text {
+                            text: root.cpu_brand;
+                            font-family: Typography.font_family;
+                            font-size: Typography.size_xs;
+                            color: Theme.text_muted;
+                            overflow: elide;
+                        }
+
+                        Text {
+                            text: I18n.dashboard_cpu_cores + ": " + root.cpu_cores_str;
+                            font-family: Typography.font_mono;
+                            font-size: Typography.size_xs;
+                            color: Theme.text_secondary;
+                        }
+                    }
+                }
             }
 
-            StatCard {
-                title: I18n.dashboard_ram_usage;
-                value: root.ram_usage_str;
-                unit: "%";
-                subtext: root.ram_used_str + " / " + root.ram_total_str;
-                accent_color: Theme.ram_chart;
+            // RAM Stat Card
+            Card {
                 horizontal-stretch: 1;
+
+                VerticalLayout {
+                    spacing: 14px;
+
+                    // Header
+                    HorizontalLayout {
+                        alignment: space-between;
+
+                        HorizontalLayout {
+                            spacing: 8px;
+                            alignment: start;
+
+                            IconRam {
+                                y: (parent.height - self.height) / 2;
+                                icon_size: 16px;
+                            }
+
+                            Text {
+                                text: I18n.dashboard_ram_usage;
+                                font-family: Typography.font_family;
+                                font-size: Typography.size_sm;
+                                font-weight: Typography.weight_semibold;
+                                color: Theme.text_secondary;
+                                vertical-alignment: center;
+                            }
+                        }
+
+                        Text {
+                            text: root.ram_used_str + " / " + root.ram_total_str;
+                            font-family: Typography.font_mono;
+                            font-size: Typography.size_xs;
+                            color: Theme.text_muted;
+                            vertical-alignment: center;
+                        }
+                    }
+
+                    // Large percentage number
+                    HorizontalLayout {
+                        spacing: 6px;
+                        alignment: start;
+
+                        Text {
+                            text: root.ram_usage_str;
+                            font-family: Typography.font_family;
+                            font-size: Typography.size_3xl;
+                            font-weight: Typography.weight_bold;
+                            color: Theme.text_primary;
+                        }
+
+                        Text {
+                            text: "%";
+                            font-family: Typography.font_family;
+                            font-size: Typography.size_lg;
+                            font-weight: Typography.weight_medium;
+                            color: Theme.text_muted;
+                            vertical-alignment: bottom;
+                        }
+                    }
+
+                    // Realtime history chart
+                    MetricChart {
+                        values: root.ram_history;
+                        chart_color: Theme.ram_chart;
+                        custom_height: 52px;
+                    }
+
+                    // RAM Footer Info
+                    HorizontalLayout {
+                        alignment: space-between;
+
+                        Text {
+                            text: I18n.dashboard_ram_available + ": " + root.ram_available_str;
+                            font-family: Typography.font_family;
+                            font-size: Typography.size_xs;
+                            color: Theme.text_muted;
+                        }
+
+                        Text {
+                            text: I18n.common_total + ": " + root.ram_total_str;
+                            font-family: Typography.font_mono;
+                            font-size: Typography.size_xs;
+                            color: Theme.text_secondary;
+                        }
+                    }
+                }
             }
         }
 
-        // Storage & System Overview
+        // Lower Grid: Disks & System Info
         HorizontalLayout {
             spacing: 16px;
 
-            // Disks block
+            // Storage Disks Section
             VerticalLayout {
                 spacing: 12px;
                 horizontal-stretch: 1;
@@ -65,16 +251,25 @@ export component DashboardPage inherits ScrollView {
                     color: Theme.text_primary;
                 }
 
-                DiskCard {
+                // Render dynamic disks
+                for disk in root.disks: DiskCard {
+                    mount_point: disk.mount_point;
+                    disk_name: disk.name + " (" + disk.fs_type + ")";
+                    used_formatted: disk.used_formatted;
+                    total_formatted: disk.total_formatted;
+                    usage_ratio: disk.usage_ratio;
+                }
+
+                if root.disks.length == 0: DiskCard {
                     mount_point: "/";
-                    disk_name: "Root Filesystem";
+                    disk_name: "Root";
                     used_formatted: "-";
                     total_formatted: "-";
                     usage_ratio: 0.0;
                 }
             }
 
-            // System Information block
+            // System Information Section
             VerticalLayout {
                 spacing: 12px;
                 horizontal-stretch: 1;
@@ -89,32 +284,91 @@ export component DashboardPage inherits ScrollView {
 
                 Card {
                     VerticalLayout {
-                        spacing: 10px;
+                        spacing: 12px;
 
                         HorizontalLayout {
                             alignment: space-between;
-                            Text { text: I18n.dashboard_os; font-size: Typography.size_xs; color: Theme.text_muted; }
-                            Text { text: root.os_name; font-size: Typography.size_xs; font-weight: Typography.weight_medium; color: Theme.text_primary; }
+                            Text {
+                                text: I18n.dashboard_os;
+                                font-family: Typography.font_family;
+                                font-size: Typography.size_xs;
+                                color: Theme.text_muted;
+                            }
+                            Text {
+                                text: root.os_name;
+                                font-family: Typography.font_family;
+                                font-size: Typography.size_xs;
+                                font-weight: Typography.weight_semibold;
+                                color: Theme.text_primary;
+                            }
                         }
+
                         HorizontalLayout {
                             alignment: space-between;
-                            Text { text: I18n.dashboard_kernel; font-size: Typography.size_xs; color: Theme.text_muted; }
-                            Text { text: root.kernel_version; font-size: Typography.size_xs; font-weight: Typography.weight_medium; color: Theme.text_primary; }
+                            Text {
+                                text: I18n.dashboard_kernel;
+                                font-family: Typography.font_family;
+                                font-size: Typography.size_xs;
+                                color: Theme.text_muted;
+                            }
+                            Text {
+                                text: root.kernel_version;
+                                font-family: Typography.font_mono;
+                                font-size: Typography.size_xs;
+                                font-weight: Typography.weight_medium;
+                                color: Theme.text_primary;
+                            }
                         }
+
                         HorizontalLayout {
                             alignment: space-between;
-                            Text { text: I18n.dashboard_arch; font-size: Typography.size_xs; color: Theme.text_muted; }
-                            Text { text: root.architecture; font-size: Typography.size_xs; font-weight: Typography.weight_medium; color: Theme.text_primary; }
+                            Text {
+                                text: I18n.dashboard_arch;
+                                font-family: Typography.font_family;
+                                font-size: Typography.size_xs;
+                                color: Theme.text_muted;
+                            }
+                            Text {
+                                text: root.architecture;
+                                font-family: Typography.font_mono;
+                                font-size: Typography.size_xs;
+                                font-weight: Typography.weight_medium;
+                                color: Theme.text_primary;
+                            }
                         }
+
                         HorizontalLayout {
                             alignment: space-between;
-                            Text { text: I18n.dashboard_hostname; font-size: Typography.size_xs; color: Theme.text_muted; }
-                            Text { text: root.hostname; font-size: Typography.size_xs; font-weight: Typography.weight_medium; color: Theme.text_primary; }
+                            Text {
+                                text: I18n.dashboard_hostname;
+                                font-family: Typography.font_family;
+                                font-size: Typography.size_xs;
+                                color: Theme.text_muted;
+                            }
+                            Text {
+                                text: root.hostname;
+                                font-family: Typography.font_mono;
+                                font-size: Typography.size_xs;
+                                font-weight: Typography.weight_medium;
+                                color: Theme.text_primary;
+                            }
                         }
+
                         HorizontalLayout {
                             alignment: space-between;
-                            Text { text: I18n.dashboard_uptime; font-size: Typography.size_xs; color: Theme.text_muted; }
-                            Text { text: root.uptime_str; font-size: Typography.size_xs; font-weight: Typography.weight_medium; color: Theme.text_primary; }
+                            Text {
+                                text: I18n.dashboard_uptime;
+                                font-family: Typography.font_family;
+                                font-size: Typography.size_xs;
+                                color: Theme.text_muted;
+                            }
+                            Text {
+                                text: root.uptime_str;
+                                font-family: Typography.font_mono;
+                                font-size: Typography.size_xs;
+                                font-weight: Typography.weight_semibold;
+                                color: Theme.accent;
+                            }
                         }
                     }
                 }

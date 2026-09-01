@@ -2,11 +2,15 @@ mod app;
 mod localization;
 mod logging;
 mod settings;
+mod system;
 mod theme;
 
 use app::AppState;
 use localization::Language;
+use slint::{ModelRc, VecModel};
 use std::sync::Arc;
+use std::time::Duration;
+use system::{OsInfoCollector, SystemMonitorService};
 use theme::ThemeMode;
 
 slint::include_modules!();
@@ -113,13 +117,36 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     tracing::info!("Starting Linux System Manager (Cleaner)");
 
     let state = Arc::new(AppState::new());
+    let monitor = Arc::new(SystemMonitorService::new());
     let window = AppWindow::new()?;
 
-    // Sync initial state to UI
+    // Initial state sync
     let current_theme = state.get_theme();
     apply_theme(&window, current_theme);
     update_ui_strings(&window, &state);
 
+    // Initial sampling of system metrics
+    let initial_snapshot = monitor.sample_snapshot();
+    apply_snapshot_to_ui(&window, &initial_snapshot);
+
+    // Spawn async background monitoring loop on Tokio runtime
+    let win_handle_monitor = window.as_weak();
+    let monitor_clone = monitor.clone();
+    tokio::spawn(async move {
+        let mut interval = tokio::time::interval(Duration::from_millis(1000));
+        loop {
+            interval.tick().await;
+            let snapshot = monitor_clone.sample_snapshot();
+            let handle = win_handle_monitor.clone();
+            let _ = slint::invoke_from_event_loop(move || {
+                if let Some(win) = handle.upgrade() {
+                    apply_snapshot_to_ui(&win, &snapshot);
+                }
+            });
+        }
+    });
+
+    // Event handlers
     let state_clone = state.clone();
     window.on_page_selected(move |page| {
         state_clone.set_page(page);
@@ -192,4 +219,46 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     window.run()?;
     Ok(())
+}
+
+fn apply_snapshot_to_ui(window: &AppWindow, snapshot: &system::SystemSnapshot) {
+    // CPU
+    window.set_cpu_usage_str(format!("{:.1}", snapshot.cpu.usage_percent).into());
+    window.set_cpu_cores_str(format!("{}", snapshot.cpu.core_count).into());
+    window.set_cpu_freq_str(format!("{} MHz", snapshot.cpu.frequency_mhz).into());
+    window.set_cpu_brand(snapshot.cpu.brand_name.clone().into());
+    window.set_cpu_history(ModelRc::new(VecModel::from(snapshot.cpu.history.clone())));
+
+    // RAM
+    window.set_ram_usage_str(format!("{:.1}", snapshot.memory.usage_percent).into());
+    window.set_ram_used_str(OsInfoCollector::format_bytes(snapshot.memory.used_bytes).into());
+    window.set_ram_available_str(
+        OsInfoCollector::format_bytes(snapshot.memory.available_bytes).into(),
+    );
+    window.set_ram_total_str(OsInfoCollector::format_bytes(snapshot.memory.total_bytes).into());
+    window.set_ram_history(ModelRc::new(VecModel::from(
+        snapshot.memory.history.clone(),
+    )));
+
+    // Disks
+    let disk_models: Vec<DiskModel> = snapshot
+        .disks
+        .iter()
+        .map(|d| DiskModel {
+            name: d.name.clone().into(),
+            mount_point: d.mount_point.clone().into(),
+            fs_type: d.file_system.clone().into(),
+            used_formatted: OsInfoCollector::format_bytes(d.used_bytes).into(),
+            total_formatted: OsInfoCollector::format_bytes(d.total_bytes).into(),
+            usage_ratio: d.usage_ratio,
+        })
+        .collect();
+    window.set_disks(ModelRc::new(VecModel::from(disk_models)));
+
+    // System Overview
+    window.set_os_name(snapshot.overview.os_name.clone().into());
+    window.set_kernel_version(snapshot.overview.kernel_version.clone().into());
+    window.set_architecture(snapshot.overview.arch.clone().into());
+    window.set_hostname(snapshot.overview.hostname.clone().into());
+    window.set_uptime_str(snapshot.overview.uptime_formatted.clone().into());
 }

@@ -3,13 +3,13 @@ import { Typography } from "theme/Typography.slint";
 import { I18n } from "I18n.slint";
 import { Sidebar } from "components/Sidebar.slint";
 import { TopBar } from "components/TopBar.slint";
-import { DashboardPage } from "pages/Dashboard.slint";
+import { DashboardPage, DiskModel } from "pages/Dashboard.slint";
 import { CleanupPage } from "pages/Cleanup.slint";
 import { ApplicationsPage } from "pages/Applications.slint";
 import { StartupPage } from "pages/Startup.slint";
 import { SettingsPage } from "pages/Settings.slint";
 
-export { Theme, Typography, I18n }
+export { Theme, Typography, I18n, DiskModel }
 
 export component AppWindow inherits Window {
     title: I18n.app_title;
@@ -26,13 +26,24 @@ export component AppWindow inherits Window {
     in-out property <int> theme_mode: 0;
     in-out property <bool> sidebar_expanded: false;
 
-    // Dashboard metrics
-    in-out property <string> cpu_usage_str: "0";
+    // CPU Metrics
+    in-out property <string> cpu_usage_str: "0.0";
     in-out property <string> cpu_cores_str: "-";
     in-out property <string> cpu_freq_str: "-";
-    in-out property <string> ram_usage_str: "0";
+    in-out property <string> cpu_brand: "CPU";
+    in-out property <[float]> cpu_history: [0.0];
+
+    // RAM Metrics
+    in-out property <string> ram_usage_str: "0.0";
     in-out property <string> ram_used_str: "0 GB";
+    in-out property <string> ram_available_str: "0 GB";
     in-out property <string> ram_total_str: "0 GB";
+    in-out property <[float]> ram_history: [0.0];
+
+    // Disks
+    in-out property <[DiskModel]> disks: [];
+
+    // System Overview
     in-out property <string> os_name: "-";
     in-out property <string> kernel_version: "-";
     in-out property <string> architecture: "-";
@@ -102,9 +113,17 @@ export component AppWindow inherits Window {
                     cpu_usage_str: root.cpu_usage_str;
                     cpu_cores_str: root.cpu_cores_str;
                     cpu_freq_str: root.cpu_freq_str;
+                    cpu_brand: root.cpu_brand;
+                    cpu_history: root.cpu_history;
+
                     ram_usage_str: root.ram_usage_str;
                     ram_used_str: root.ram_used_str;
+                    ram_available_str: root.ram_available_str;
                     ram_total_str: root.ram_total_str;
+                    ram_history: root.ram_history;
+
+                    disks: root.disks;
+
                     os_name: root.os_name;
                     kernel_version: root.kernel_version;
                     architecture: root.architecture;
