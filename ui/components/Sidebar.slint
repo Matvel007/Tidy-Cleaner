@@ -89,7 +89,7 @@ component NavItem inherits Rectangle {
 
 export component Sidebar inherits Rectangle {
     in-out property <int> active_page: 0;
-    in-out property <bool> is_expanded: true;
+    in-out property <bool> is_expanded: false;
     
     callback page_changed(int);
     callback toggle_expand();
