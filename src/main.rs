@@ -16,6 +16,8 @@ use theme::ThemeMode;
 
 slint::include_modules!();
 
+use slint::winit_030::{winit, EventResult, WinitWindowAccessor};
+
 fn update_ui_strings(window: &AppWindow, state: &AppState) {
     let loc = &state.localization;
     let i18n = window.global::<I18n>();
@@ -43,6 +45,7 @@ fn update_ui_strings(window: &AppWindow, state: &AppState) {
     i18n.set_common_open(loc.t("common.open").into());
     i18n.set_common_delete(loc.t("common.delete").into());
     i18n.set_common_version(loc.t("common.version").into());
+    i18n.set_common_total_items(loc.t("common.total_items").into());
 
     i18n.set_dashboard_title(loc.t("dashboard.title").into());
     i18n.set_dashboard_subtitle(loc.t("dashboard.subtitle").into());
@@ -56,13 +59,19 @@ fn update_ui_strings(window: &AppWindow, state: &AppState) {
     i18n.set_dashboard_system_info(loc.t("dashboard.system_info").into());
     i18n.set_dashboard_system_overview(loc.t("dashboard.system_overview").into());
     i18n.set_dashboard_os(loc.t("dashboard.os").into());
+    i18n.set_dashboard_os_label(loc.t("dashboard.os_label").into());
     i18n.set_dashboard_kernel(loc.t("dashboard.kernel").into());
+    i18n.set_dashboard_kernel_label(loc.t("dashboard.kernel_label").into());
     i18n.set_dashboard_arch(loc.t("dashboard.arch").into());
     i18n.set_dashboard_hostname(loc.t("dashboard.hostname").into());
+    i18n.set_dashboard_host_label(loc.t("dashboard.host_label").into());
     i18n.set_dashboard_uptime(loc.t("dashboard.uptime").into());
+    i18n.set_dashboard_uptime_label(loc.t("dashboard.uptime_label").into());
     i18n.set_dashboard_temperature(loc.t("dashboard.temperature").into());
     i18n.set_dashboard_cpu_temp(loc.t("dashboard.cpu_temp").into());
     i18n.set_dashboard_gpu_temp(loc.t("dashboard.gpu_temp").into());
+    i18n.set_dashboard_temp_high(loc.t("dashboard.temp_high").into());
+    i18n.set_dashboard_temp_optimal(loc.t("dashboard.temp_optimal").into());
     i18n.set_dashboard_storage_primary(loc.t("dashboard.storage_primary").into());
     i18n.set_dashboard_storage_secondary(loc.t("dashboard.storage_secondary").into());
     i18n.set_dashboard_storage_used(loc.t("dashboard.storage_used").into());
@@ -125,11 +134,6 @@ fn apply_theme(window: &AppWindow, theme_mode: ThemeMode) {
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    // Enable seamless frameless window dragging & positioning on Linux
-    if std::env::var_os("WINIT_UNIX_BACKEND").is_none() && std::env::var_os("DISPLAY").is_some() {
-        std::env::set_var("WINIT_UNIX_BACKEND", "x11");
-    }
-
     let _ = logging::init_logging();
     tracing::info!("Starting Tidy Cleaner");
 
@@ -153,29 +157,45 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         }
     });
 
-    // Frameless window controls: drag to move
-    let win_drag = window.as_weak();
-    let drag_state: Rc<Cell<Option<(f32, f32)>>> = Rc::new(Cell::new(None));
-    window.on_titlebar_drag(move |down, up, x, y| {
-        if down {
-            drag_state.set(Some((x, y)));
-        } else if up {
-            drag_state.set(None);
-        } else if let Some((start_x, start_y)) = drag_state.get() {
-            if let Some(w) = win_drag.upgrade() {
-                let dx = x - start_x;
-                let dy = y - start_y;
-                if dx.abs() > 0.0 || dy.abs() > 0.0 {
-                    let scale = w.window().scale_factor();
-                    let pos = w.window().position();
-                    let nx = pos.x + (dx * scale) as i32;
-                    let ny = pos.y + (dy * scale) as i32;
-                    w.window()
-                        .set_position(slint::PhysicalPosition::new(nx, ny));
+    // Frameless window dragging.
+    //
+    // We don't move the window ourselves (Wayland ignores `set_position`); instead we
+    // trigger the compositor's own interactive move via winit's `drag_window()`, which
+    // maps to `xdg_toplevel.move` on Wayland and `_NET_WM_MOVERESIZE` on X11.
+    //
+    // A winit event filter is used (instead of a Slint `TouchArea`) so the move does not
+    // leave a stuck mouse grab that would swallow clicks on the rest of the UI.
+    let cursor_pos: Rc<Cell<Option<(f64, f64)>>> = Rc::new(Cell::new(None));
+    window
+        .window()
+        .on_winit_window_event(move |slint_window, event| {
+            match event {
+                winit::event::WindowEvent::CursorMoved { position, .. } => {
+                    cursor_pos.set(Some((position.x, position.y)));
                 }
+                winit::event::WindowEvent::MouseInput {
+                    state: winit::event::ElementState::Pressed,
+                    button: winit::event::MouseButton::Left,
+                    ..
+                } => {
+                    if let Some((x, y)) = cursor_pos.get() {
+                        let scale = slint_window.scale_factor() as f64;
+                        let size = slint_window.size();
+                        // Titlebar is 40 logical px tall; the right ~80 logical px are
+                        // reserved for the minimize/close window controls.
+                        let titlebar_height = 40.0 * scale;
+                        let controls_zone = 80.0 * scale;
+                        if y < titlebar_height && x < (size.width as f64 - controls_zone) {
+                            slint_window.with_winit_window(|winit_window| {
+                                let _ = winit_window.drag_window();
+                            });
+                        }
+                    }
+                }
+                _ => {}
             }
-        }
-    });
+            EventResult::Propagate
+        });
 
     // Initial state sync
     let current_theme = state.get_theme();

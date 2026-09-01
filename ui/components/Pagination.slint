@@ -1,5 +1,6 @@
 import { Theme } from "../theme/Palette.slint";
 import { Typography } from "../theme/Typography.slint";
+import { I18n } from "../I18n.slint";
 import { Button } from "Button.slint";
 
 export component Pagination inherits Rectangle {
@@ -16,7 +17,7 @@ export component Pagination inherits Rectangle {
         alignment: space-between;
 
         Text {
-            text: "Total items: " + root.total_items;
+            text: I18n.common_total_items + ": " + root.total_items;
             font-family: Typography.font_family;
             font-size: Typography.size_xs;
             color: Theme.text_muted;

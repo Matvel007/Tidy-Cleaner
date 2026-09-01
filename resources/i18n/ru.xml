@@ -25,6 +25,7 @@
     <string name="common.open">Открыть</string>
     <string name="common.delete">Удалить</string>
     <string name="common.version">Версия</string>
+    <string name="common.total_items">Всего элементов</string>
 
     <!-- Dashboard -->
     <string name="dashboard.title">Панель мониторинга</string>
@@ -37,15 +38,21 @@
     <string name="dashboard.ram_available">Доступно</string>
     <string name="dashboard.disks">Дисковые накопители</string>
     <string name="dashboard.system_info">Информация о системе</string>
-    <string name="dashboard.system_overview">Обзор системы</string>
+    <string name="dashboard.system_overview">Информация о системе</string>
     <string name="dashboard.os">Операционная система</string>
+    <string name="dashboard.os_label">ОС:</string>
     <string name="dashboard.kernel">Ядро</string>
+    <string name="dashboard.kernel_label">Ядро:</string>
     <string name="dashboard.arch">Архитектура</string>
     <string name="dashboard.hostname">Имя хоста</string>
+    <string name="dashboard.host_label">Хост:</string>
     <string name="dashboard.uptime">Время работы</string>
+    <string name="dashboard.uptime_label">Аптайм:</string>
     <string name="dashboard.temperature">Температура</string>
     <string name="dashboard.cpu_temp">Температура CPU</string>
     <string name="dashboard.gpu_temp">Температура GPU</string>
+    <string name="dashboard.temp_high">Высокая температура</string>
+    <string name="dashboard.temp_optimal">Оптимальная температура</string>
     <string name="dashboard.storage_primary">Встроенный накопитель</string>
     <string name="dashboard.storage_secondary">Дополнительный накопитель</string>
     <string name="dashboard.storage_used">Занято</string>

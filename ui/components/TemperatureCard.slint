@@ -129,7 +129,7 @@ export component TemperatureCard inherits Card {
 
         // Subtext
         Text {
-            text: root.cpu_temp_val > 80.0 || root.gpu_temp_val > 80.0 ? "High Thermal Load" : "Optimal Conditions";
+            text: root.cpu_temp_val > 80.0 || root.gpu_temp_val > 80.0 ? I18n.dashboard_temp_high : I18n.dashboard_temp_optimal;
             font-family: Typography.font_family;
             font-size: Typography.size_xs;
             color: Theme.text_muted;

@@ -25,6 +25,7 @@
     <string name="common.open">Open</string>
     <string name="common.delete">Delete</string>
     <string name="common.version">Version</string>
+    <string name="common.total_items">Total items</string>
 
     <!-- Dashboard -->
     <string name="dashboard.title">System Dashboard</string>
@@ -37,15 +38,21 @@
     <string name="dashboard.ram_available">Available</string>
     <string name="dashboard.disks">Storage Disks</string>
     <string name="dashboard.system_info">System Information</string>
-    <string name="dashboard.system_overview">System Overview</string>
+    <string name="dashboard.system_overview">System Information</string>
     <string name="dashboard.os">Operating System</string>
+    <string name="dashboard.os_label">OS:</string>
     <string name="dashboard.kernel">Kernel</string>
+    <string name="dashboard.kernel_label">Kernel:</string>
     <string name="dashboard.arch">Architecture</string>
     <string name="dashboard.hostname">Hostname</string>
+    <string name="dashboard.host_label">Host:</string>
     <string name="dashboard.uptime">Uptime</string>
+    <string name="dashboard.uptime_label">Uptime:</string>
     <string name="dashboard.temperature">Temperature</string>
     <string name="dashboard.cpu_temp">CPU Temp</string>
     <string name="dashboard.gpu_temp">GPU Temp</string>
+    <string name="dashboard.temp_high">High Thermal Load</string>
+    <string name="dashboard.temp_optimal">Optimal Conditions</string>
     <string name="dashboard.storage_primary">Internal Storage</string>
     <string name="dashboard.storage_secondary">Secondary Storage</string>
     <string name="dashboard.storage_used">Used</string>
