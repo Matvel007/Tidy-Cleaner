@@ -19,9 +19,11 @@ export component TitleBar inherits Rectangle {
         background: Theme.border;
     }
 
-    // Drag area capturing pointer events and mouse motion
+    // Drag area capturing pointer events and mouse motion (excluding buttons area)
     drag_area := TouchArea {
-        width: 100%;
+        x: 0px;
+        y: 0px;
+        width: parent.width - 80px;
         height: 100%;
         mouse-cursor: default;
         pointer-event(event) => {

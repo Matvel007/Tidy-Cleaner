@@ -145,6 +145,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let win_min = window.as_weak();
     window.on_window_minimize(move || {
         if let Some(w) = win_min.upgrade() {
+            w.window().set_minimized(false);
             w.window().set_minimized(true);
         }
     });
@@ -154,6 +155,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     window.on_window_close(move || {
         if let Some(w) = win_close.upgrade() {
             let _ = w.window().hide();
+            std::process::exit(0);
         }
     });
 
