@@ -191,6 +191,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                             slint_window.with_winit_window(|winit_window| {
                                 let _ = winit_window.drag_window();
                             });
+                            return EventResult::PreventDefault;
                         }
                     }
                 }

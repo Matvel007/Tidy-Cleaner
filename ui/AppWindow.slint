@@ -84,7 +84,6 @@ export component AppWindow inherits Window {
     // Window callbacks
     callback window_minimize();
     callback window_close();
-    callback titlebar_drag(down: bool, up: bool, x: length, y: length);
 
     // Callbacks to Rust
     callback page_selected(int);
@@ -116,7 +115,6 @@ export component AppWindow inherits Window {
             title: I18n.app_title;
             minimize => { root.window_minimize(); }
             close => { root.window_close(); }
-            drag(down, up, x, y) => { root.titlebar_drag(down, up, x, y); }
         }
 
         HorizontalLayout {

@@ -7,7 +7,6 @@ export component TitleBar inherits Rectangle {
 
     callback minimize();
     callback close();
-    callback drag(down: bool, up: bool, x: length, y: length);
 
     height: 40px;
     background: Theme.surface;
@@ -17,26 +16,6 @@ export component TitleBar inherits Rectangle {
         width: 100%;
         height: 1px;
         background: Theme.border;
-    }
-
-    // Drag area capturing pointer events and mouse motion (excluding buttons area)
-    drag_area := TouchArea {
-        x: 0px;
-        y: 0px;
-        width: parent.width - 80px;
-        height: 100%;
-        mouse-cursor: default;
-        pointer-event(event) => {
-            root.drag(
-                event.kind == PointerEventKind.down,
-                event.kind == PointerEventKind.up,
-                drag_area.mouse_x,
-                drag_area.mouse_y,
-            );
-        }
-        moved => {
-            root.drag(false, false, drag_area.mouse_x, drag_area.mouse_y);
-        }
     }
 
     HorizontalLayout {
