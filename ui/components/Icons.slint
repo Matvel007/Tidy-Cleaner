@@ -1,5 +1,20 @@
 import { Theme } from "../theme/Palette.slint";
 
+export component IconMenu inherits Rectangle {
+    in property <color> icon_color: Theme.text_primary;
+    in property <length> icon_size: 18px;
+    width: icon_size;
+    height: icon_size;
+
+    Path {
+        width: 100%;
+        height: 100%;
+        stroke: icon_color;
+        stroke-width: 1.6px;
+        commands: "M 3 5 L 15 5 M 3 9 L 15 9 M 3 13 L 15 13";
+    }
+}
+
 export component IconDashboard inherits Rectangle {
     in property <color> icon_color: Theme.text_primary;
     in property <length> icon_size: 18px;
@@ -32,6 +47,7 @@ export component IconDashboard inherits Rectangle {
     }
 }
 
+// Redesigned wide trash bin with balanced proportions, lid handle and body ribs
 export component IconCleanup inherits Rectangle {
     in property <color> icon_color: Theme.text_primary;
     in property <length> icon_size: 18px;
@@ -43,7 +59,8 @@ export component IconCleanup inherits Rectangle {
         height: 100%;
         stroke: icon_color;
         stroke-width: 1.5px;
-        commands: "M 4 5 L 14 5 M 6 5 L 6 15 A 1 1 0 0 0 7 16 L 11 16 A 1 1 0 0 0 12 15 L 12 5 M 8 5 L 8 3 A 1 1 0 0 1 9 2 L 9 2 A 1 1 0 0 1 10 3 L 10 5";
+        // Top handle, lid bar, bucket body and inner vertical ribs
+        commands: "M 7 4.5 L 7 3 A 1 1 0 0 1 8 2 L 10 2 A 1 1 0 0 1 11 3 L 11 4.5 M 2.5 4.5 L 15.5 4.5 M 4 4.5 L 5 15 A 1.5 1.5 0 0 0 6.5 16.5 L 11.5 16.5 A 1.5 1.5 0 0 0 13 15 L 14 4.5 M 7 8 L 7 13 M 11 8 L 11 13";
     }
 }
 
@@ -77,6 +94,7 @@ export component IconStartup inherits Rectangle {
     }
 }
 
+// Redesigned Settings icon: Modern adjustments / tuning sliders (NOT a gear)
 export component IconSettings inherits Rectangle {
     in property <color> icon_color: Theme.text_primary;
     in property <length> icon_size: 18px;
@@ -88,7 +106,8 @@ export component IconSettings inherits Rectangle {
         height: 100%;
         stroke: icon_color;
         stroke-width: 1.5px;
-        commands: "M 9 6 A 3 3 0 1 0 9 12 A 3 3 0 1 0 9 6 M 9 1 L 9 3 M 9 15 L 9 17 M 1 9 L 3 9 M 15 9 L 17 9 M 3.3 3.3 L 4.8 4.8 M 13.2 13.2 L 14.7 14.7 M 3.3 14.7 L 4.8 13.2 M 13.2 4.8 L 14.7 3.3";
+        // Line 1 with slider knob, Line 2 with slider knob, Line 3 with slider knob
+        commands: "M 2.5 4.5 L 15.5 4.5 M 6 2.5 L 6 6.5 M 2.5 9 L 15.5 9 M 12 7 L 12 11 M 2.5 13.5 L 15.5 13.5 M 7.5 11.5 L 7.5 15.5";
     }
 }
 

@@ -24,6 +24,7 @@ export component AppWindow inherits Window {
     in-out property <int> current_page: 0;
     in-out property <string> current_lang: "en";
     in-out property <int> theme_mode: 0;
+    in-out property <bool> sidebar_expanded: true;
 
     // Dashboard metrics
     in-out property <string> cpu_usage_str: "0";
@@ -39,9 +40,6 @@ export component AppWindow inherits Window {
     in-out property <string> uptime_str: "-";
 
     // Callbacks to Rust
-    callback refresh_requested();
-    callback theme_toggle_requested();
-    callback language_toggle_requested();
     callback page_selected(int);
     
     // Settings callbacks
@@ -66,9 +64,10 @@ export component AppWindow inherits Window {
     HorizontalLayout {
         spacing: 0px;
 
-        // Persistent Left Navigation
+        // Collapsible Left Navigation
         Sidebar {
             active_page <=> root.current_page;
+            is_expanded <=> root.sidebar_expanded;
             page_changed(idx) => {
                 root.page_selected(idx);
             }
@@ -79,7 +78,7 @@ export component AppWindow inherits Window {
             spacing: 0px;
             horizontal-stretch: 1;
 
-            // Top Header Bar
+            // Clean Top Header Bar
             TopBar {
                 title: root.current_page == 0 ? I18n.nav_dashboard :
                     root.current_page == 1 ? I18n.nav_cleanup :
@@ -92,12 +91,6 @@ export component AppWindow inherits Window {
                     root.current_page == 2 ? I18n.applications_subtitle :
                     root.current_page == 3 ? I18n.startup_subtitle :
                     I18n.settings_subtitle;
-
-                current_lang: root.current_lang == "ru" ? "RU" : "EN";
-
-                refresh_clicked => { root.refresh_requested(); }
-                theme_toggled => { root.theme_toggle_requested(); }
-                lang_toggled => { root.language_toggle_requested(); }
             }
 
             // Active Page View

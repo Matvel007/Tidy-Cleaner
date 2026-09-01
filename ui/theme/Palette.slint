@@ -1,17 +1,17 @@
 export global Theme {
     in-out property <bool> is_dark: true;
 
-    // Backgrounds
-    out property <color> background: is_dark ? #111216 : #f8fafc;
-    out property <color> surface: is_dark ? #181a20 : #ffffff;
-    out property <color> surface_secondary: is_dark ? #21242c : #f1f5f9;
-    out property <color> surface_hover: is_dark ? #282c37 : #e2e8f0;
-    out property <color> surface_active: is_dark ? #323846 : #cbd5e1;
+    // Backgrounds - Premium deep slate / neutral dark
+    out property <color> background: is_dark ? #121317 : #f8fafc;
+    out property <color> surface: is_dark ? #1a1c23 : #ffffff;
+    out property <color> surface_secondary: is_dark ? #222530 : #f1f5f9;
+    out property <color> surface_hover: is_dark ? #2a2e3c : #e2e8f0;
+    out property <color> surface_active: is_dark ? #34394a : #cbd5e1;
 
     // Borders
-    out property <color> border: is_dark ? #272a34 : #e2e8f0;
-    out property <color> border_subtle: is_dark ? #1e2129 : #f1f5f9;
-    out property <color> border_focus: is_dark ? #3b82f6 : #2563eb;
+    out property <color> border: is_dark ? #282c38 : #e2e8f0;
+    out property <color> border_subtle: is_dark ? #1e212b : #f1f5f9;
+    out property <color> border_focus: is_dark ? #4a5166 : #94a3b8;
 
     // Text colors
     out property <color> text_primary: is_dark ? #f1f5f9 : #0f172a;
@@ -19,10 +19,16 @@ export global Theme {
     out property <color> text_muted: is_dark ? #64748b : #94a3b8;
     out property <color> text_inverse: is_dark ? #0f172a : #ffffff;
 
-    // Accent colors (Refined blue / indigo)
-    out property <color> accent: is_dark ? #3b82f6 : #2563eb;
-    out property <color> accent_hover: is_dark ? #60a5fa : #1d4ed8;
-    out property <color> accent_light: is_dark ? #1e293b : #dbeafe;
+    // Button & Component Accents - Refined graphite / steel slate (not screaming blue)
+    out property <color> button_primary_bg: is_dark ? #2e3444 : #1e293b;
+    out property <color> button_primary_hover: is_dark ? #3a4256 : #334155;
+    out property <color> button_primary_active: is_dark ? #454f66 : #0f172a;
+    out property <color> button_primary_border: is_dark ? #414a60 : #334155;
+    out property <color> button_primary_text: #f8fafc;
+
+    out property <color> accent: is_dark ? #6366f1 : #4f46e5;
+    out property <color> accent_light: is_dark ? #252838 : #e0e7ff;
+    out property <color> accent_hover: is_dark ? #818cf8 : #4338ca;
     out property <color> accent_text: #ffffff;
 
     // Status colors
@@ -31,7 +37,10 @@ export global Theme {
     out property <color> warning: is_dark ? #f59e0b : #d97706;
     out property <color> warning_bg: is_dark ? #78350f : #fef3c7;
     out property <color> danger: is_dark ? #ef4444 : #dc2626;
-    out property <color> danger_bg: is_dark ? #7f1d1d : #fee2e2;
+    out property <color> danger_bg: is_dark ? #40191f : #fee2e2;
+    out property <color> danger_hover: is_dark ? #522028 : #fecaca;
+    out property <color> danger_border: is_dark ? #632630 : #fca5a5;
+    out property <color> danger_text: is_dark ? #fca5a5 : #b91c1c;
 
     // Metrics / Charts
     out property <color> cpu_chart: is_dark ? #38bdf8 : #0284c7;

@@ -121,34 +121,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     update_ui_strings(&window, &state);
 
     let state_clone = state.clone();
-    let win_handle = window.as_weak();
-    window.on_theme_toggle_requested(move || {
-        if let Some(win) = win_handle.upgrade() {
-            let current = state_clone.get_theme();
-            let new_theme = if current.is_dark() {
-                ThemeMode::Light
-            } else {
-                ThemeMode::Dark
-            };
-            state_clone.set_theme(new_theme);
-            apply_theme(&win, new_theme);
-        }
-    });
-
-    let state_clone = state.clone();
-    let win_handle = window.as_weak();
-    window.on_language_toggle_requested(move || {
-        if let Some(win) = win_handle.upgrade() {
-            let next_lang = match state_clone.get_language() {
-                Language::En => Language::Ru,
-                Language::Ru => Language::En,
-            };
-            state_clone.set_language(next_lang);
-            update_ui_strings(&win, &state_clone);
-        }
-    });
-
-    let state_clone = state.clone();
     window.on_page_selected(move |page| {
         state_clone.set_page(page);
     });
@@ -216,10 +188,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     window.on_settings_open_logs_clicked(move || {
         let log_dir = logging::dirs_log_path();
         let _ = std::process::Command::new("xdg-open").arg(log_dir).spawn();
-    });
-
-    window.on_refresh_requested(|| {
-        tracing::debug!("Refresh triggered");
     });
 
     window.run()?;

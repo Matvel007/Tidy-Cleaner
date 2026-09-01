@@ -15,14 +15,18 @@ export component Button inherits Rectangle {
     clip: true;
 
     // Background color computation
-    background: !root.enabled ? (Theme.is_dark ? #21242c : #f1f5f9) :
-        variant == "primary" ? (touch.pressed ? Theme.accent.darker(15%) : (touch.has-hover ? Theme.accent_hover : Theme.accent)) :
-        variant == "danger" ? (touch.pressed ? Theme.danger.darker(15%) : (touch.has-hover ? Theme.danger.brighter(10%) : Theme.danger)) :
+    background: !root.enabled ? (Theme.is_dark ? #1e2029 : #f1f5f9) :
+        variant == "primary" ? (touch.pressed ? Theme.button_primary_active : (touch.has-hover ? Theme.button_primary_hover : Theme.button_primary_bg)) :
+        variant == "danger" ? (touch.pressed ? Theme.danger_bg.darker(15%) : (touch.has-hover ? Theme.danger_hover : Theme.danger_bg)) :
         variant == "secondary" ? (touch.pressed ? Theme.surface_active : (touch.has-hover ? Theme.surface_hover : Theme.surface_secondary)) :
         /* ghost */ (touch.pressed ? Theme.surface_active : (touch.has-hover ? Theme.surface_hover : Colors.transparent));
 
-    border-width: variant == "secondary" ? 1px : 0px;
-    border-color: Theme.border;
+    border-width: 1px;
+    border-color: !root.enabled ? Colors.transparent :
+        variant == "primary" ? (touch.has-hover ? Theme.button_primary_border.brighter(15%) : Theme.button_primary_border) :
+        variant == "danger" ? (touch.has-hover ? Theme.danger_border.brighter(15%) : Theme.danger_border) :
+        variant == "secondary" ? (touch.has-hover ? Theme.border_focus : Theme.border) :
+        Colors.transparent;
 
     animate background { duration: 150ms; easing: ease-out; }
     animate border-color { duration: 150ms; easing: ease-out; }
@@ -41,7 +45,8 @@ export component Button inherits Rectangle {
             horizontal-alignment: center;
 
             color: !root.enabled ? Theme.text_muted :
-                variant == "primary" || variant == "danger" ? #ffffff :
+                variant == "primary" ? Theme.button_primary_text :
+                variant == "danger" ? Theme.danger_text :
                 Theme.text_primary;
         }
     }
