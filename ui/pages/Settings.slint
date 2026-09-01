@@ -7,6 +7,13 @@ import { Toggle } from "../components/Toggle.slint";
 import { Button } from "../components/Button.slint";
 
 export component SettingsPage inherits ScrollView {
+    out property <bool> is_scrolled: self.viewport_y < -20px;
+    callback scroll_changed(bool);
+
+    changed viewport_y => {
+        root.scroll_changed(self.viewport_y < -20px);
+    }
+
     in property <int> theme_mode: 0; // 0: Dark, 1: Light, 2: System
     in property <string> current_lang: "en";
     in property <bool> autostart_enabled: false;

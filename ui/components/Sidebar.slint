@@ -94,7 +94,7 @@ export component Sidebar inherits Rectangle {
     callback page_changed(int);
     callback toggle_expand();
 
-    width: is_expanded ? 210px : 64px;
+    width: is_expanded ? 175px : 64px;
     background: Theme.surface;
     border-width: 0px;
     clip: true;
@@ -113,52 +113,18 @@ export component Sidebar inherits Rectangle {
         padding: 10px;
         spacing: 6px;
 
-        // Header with expand/collapse button and title
+        // Header with expand/collapse button
         HorizontalLayout {
             padding-left: root.is_expanded ? 6px : 0px;
             padding-right: root.is_expanded ? 6px : 0px;
             padding-top: 4px;
-            padding-bottom: 14px;
-            spacing: 10px;
-            alignment: root.is_expanded ? space-between : center;
-
-            if root.is_expanded: HorizontalLayout {
-                spacing: 10px;
-                alignment: start;
-
-                Rectangle {
-                    width: 28px;
-                    height: 28px;
-                    border-radius: Theme.radius_md;
-                    background: Theme.button_primary_bg;
-                    border-width: 1px;
-                    border-color: Theme.border;
-
-                    Path {
-                        width: 100%;
-                        height: 100%;
-                        stroke: Theme.text_primary;
-                        stroke-width: 1.5px;
-                        commands: "M 7 14 L 14 7 L 21 14 L 14 21 Z";
-                    }
-                }
-
-                VerticalLayout {
-                    alignment: center;
-                    Text {
-                        text: I18n.app_title;
-                        font-family: Typography.font_family;
-                        font-size: Typography.size_base;
-                        font-weight: Typography.weight_bold;
-                        color: Theme.text_primary;
-                    }
-                }
-            }
+            padding-bottom: 12px;
+            alignment: root.is_expanded ? start : center;
 
             // Menu Toggle button
             toggle_btn := Rectangle {
-                width: 32px;
-                height: 32px;
+                width: 34px;
+                height: 34px;
                 border-radius: Theme.radius_md;
                 background: toggle_touch.has-hover ? Theme.surface_hover : Colors.transparent;
 
@@ -167,7 +133,7 @@ export component Sidebar inherits Rectangle {
                 IconMenu {
                     x: (parent.width - self.width) / 2;
                     y: (parent.height - self.height) / 2;
-                    icon_size: 16px;
+                    icon_size: 18px;
                     icon_color: Theme.text_secondary;
                 }
 

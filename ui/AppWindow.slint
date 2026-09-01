@@ -14,6 +14,7 @@ export { Theme, Typography, I18n }
 
 export component AppWindow inherits Window {
     title: I18n.app_title;
+    icon: @image-url("../resources/icons/logo.svg");
     no-frame: true;
     preferred-width: 960px;
     preferred-height: 540px;
@@ -29,6 +30,7 @@ export component AppWindow inherits Window {
     in-out property <string> current_lang: "en";
     in-out property <int> theme_mode: 0;
     in-out property <bool> sidebar_expanded: false;
+    in-out property <bool> settings_scrolled: false;
 
     // CPU Metrics
     in-out property <string> cpu_usage_str: "0.0";
@@ -128,6 +130,7 @@ export component AppWindow inherits Window {
                 active_page <=> root.current_page;
                 is_expanded <=> root.sidebar_expanded;
                 page_changed(idx) => {
+                    root.settings_scrolled = false;
                     root.page_selected(idx);
                 }
             }
@@ -137,8 +140,15 @@ export component AppWindow inherits Window {
                 spacing: 0px;
                 horizontal-stretch: 1;
 
-                // Page Header Bar
+                // Page Header Bar (smoothly collapses on Settings scroll)
                 TopBar {
+                    height: (root.current_page == 4 && root.settings_scrolled) ? 0px : 56px;
+                    opacity: (root.current_page == 4 && root.settings_scrolled) ? 0.0 : 1.0;
+                    clip: true;
+
+                    animate height { duration: 220ms; easing: ease-out; }
+                    animate opacity { duration: 180ms; easing: ease-out; }
+
                     title: root.current_page == 0 ? I18n.nav_dashboard :
                         root.current_page == 1 ? I18n.nav_cleanup :
                         root.current_page == 2 ? I18n.nav_applications :
@@ -230,6 +240,7 @@ export component AppWindow inherits Window {
                         confirm_delete_toggled(v) => { root.settings_confirm_delete_toggled(v); }
                         show_hidden_toggled(v) => { root.settings_show_hidden_toggled(v); }
                         open_logs_clicked => { root.settings_open_logs_clicked(); }
+                        scroll_changed(s) => { root.settings_scrolled = s; }
                     }
                 }
             }

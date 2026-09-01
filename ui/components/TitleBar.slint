@@ -1,9 +1,9 @@
 import { Theme } from "../theme/Palette.slint";
 import { Typography } from "../theme/Typography.slint";
-import { IconClose, IconMinimize } from "Icons.slint";
+import { IconClose, IconMinimize, IconLogo } from "Icons.slint";
 
 export component TitleBar inherits Rectangle {
-    in property <string> title: "App";
+    in property <string> title: "Tidy Cleaner";
 
     callback minimize();
     callback close();
@@ -19,6 +19,7 @@ export component TitleBar inherits Rectangle {
         background: Theme.border;
     }
 
+    // Drag area capturing pointer events and mouse motion
     drag_area := TouchArea {
         width: 100%;
         height: 100%;
@@ -31,31 +32,43 @@ export component TitleBar inherits Rectangle {
                 drag_area.mouse_y,
             );
         }
+        moved => {
+            root.drag(false, false, drag_area.mouse_x, drag_area.mouse_y);
+        }
     }
 
     HorizontalLayout {
-        padding-left: 16px;
+        padding-left: 14px;
         padding-right: 8px;
         alignment: space-between;
 
-        VerticalLayout {
-            alignment: center;
+        // Left Branding: Vector Logo + Title on exact vertical center
+        HorizontalLayout {
+            spacing: 10px;
+            alignment: start;
+
+            IconLogo {
+                y: (parent.height - self.height) / 2;
+                icon_size: 22px;
+            }
 
             Text {
                 text: root.title;
                 font-family: Typography.font_family;
                 font-size: Typography.size_sm;
-                font-weight: Typography.weight_semibold;
+                font-weight: Typography.weight_bold;
                 color: Theme.text_primary;
                 vertical-alignment: center;
             }
         }
 
+        // Right Window Controls: Minimize & Close centered on exact same baseline
         HorizontalLayout {
             spacing: 4px;
             alignment: end;
 
             win_min := Rectangle {
+                y: (parent.height - self.height) / 2;
                 width: 32px;
                 height: 32px;
                 border-radius: Theme.radius_md;
@@ -77,6 +90,7 @@ export component TitleBar inherits Rectangle {
             }
 
             win_close := Rectangle {
+                y: (parent.height - self.height) / 2;
                 width: 32px;
                 height: 32px;
                 border-radius: Theme.radius_md;

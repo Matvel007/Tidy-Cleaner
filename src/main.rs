@@ -150,22 +150,24 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // Frameless window controls: drag to move
     let win_drag = window.as_weak();
-    let drag_state: Rc<Cell<Option<(f32, f32, slint::PhysicalPosition)>>> =
-        Rc::new(Cell::new(None));
+    let drag_state: Rc<Cell<Option<(f32, f32)>>> = Rc::new(Cell::new(None));
     window.on_titlebar_drag(move |down, up, x, y| {
         if down {
-            if let Some(w) = win_drag.upgrade() {
-                drag_state.set(Some((x, y, w.window().position())));
-            }
+            drag_state.set(Some((x, y)));
         } else if up {
             drag_state.set(None);
-        } else if let Some((start_x, start_y, origin)) = drag_state.get() {
+        } else if let Some((start_x, start_y)) = drag_state.get() {
             if let Some(w) = win_drag.upgrade() {
-                let scale = w.window().scale_factor();
-                let nx = origin.x + ((x - start_x) * scale) as i32;
-                let ny = origin.y + ((y - start_y) * scale) as i32;
-                w.window()
-                    .set_position(slint::PhysicalPosition::new(nx, ny));
+                let dx = x - start_x;
+                let dy = y - start_y;
+                if dx.abs() > 0.0 || dy.abs() > 0.0 {
+                    let scale = w.window().scale_factor();
+                    let pos = w.window().position();
+                    let nx = pos.x + (dx * scale) as i32;
+                    let ny = pos.y + (dy * scale) as i32;
+                    w.window()
+                        .set_position(slint::PhysicalPosition::new(nx, ny));
+                }
             }
         }
     });

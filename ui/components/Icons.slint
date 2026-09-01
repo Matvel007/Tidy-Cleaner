@@ -1,5 +1,18 @@
 import { Theme } from "../theme/Palette.slint";
 
+export component IconLogo inherits Rectangle {
+    in property <length> icon_size: 20px;
+    width: icon_size;
+    height: icon_size;
+
+    Image {
+        width: 100%;
+        height: 100%;
+        source: @image-url("../../resources/icons/logo.svg");
+        image-fit: contain;
+    }
+}
+
 export component IconMenu inherits Rectangle {
     in property <color> icon_color: Theme.text_primary;
     in property <length> icon_size: 18px;
