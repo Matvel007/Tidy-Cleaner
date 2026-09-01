@@ -1,0 +1,101 @@
+import { Theme } from "../theme/Palette.slint";
+import { Typography } from "../theme/Typography.slint";
+import { IconClose, IconMinimize } from "Icons.slint";
+
+export component TitleBar inherits Rectangle {
+    in property <string> title: "App";
+
+    callback minimize();
+    callback close();
+    callback drag(down: bool, up: bool, x: length, y: length);
+
+    height: 40px;
+    background: Theme.surface;
+
+    Rectangle {
+        y: parent.height - 1px;
+        width: 100%;
+        height: 1px;
+        background: Theme.border;
+    }
+
+    drag_area := TouchArea {
+        width: 100%;
+        height: 100%;
+        mouse-cursor: default;
+        pointer-event(event) => {
+            root.drag(
+                event.kind == PointerEventKind.down,
+                event.kind == PointerEventKind.up,
+                drag_area.mouse_x,
+                drag_area.mouse_y,
+            );
+        }
+    }
+
+    HorizontalLayout {
+        padding-left: 16px;
+        padding-right: 8px;
+        alignment: space-between;
+
+        VerticalLayout {
+            alignment: center;
+
+            Text {
+                text: root.title;
+                font-family: Typography.font_family;
+                font-size: Typography.size_sm;
+                font-weight: Typography.weight_semibold;
+                color: Theme.text_primary;
+                vertical-alignment: center;
+            }
+        }
+
+        HorizontalLayout {
+            spacing: 4px;
+            alignment: end;
+
+            win_min := Rectangle {
+                width: 32px;
+                height: 32px;
+                border-radius: Theme.radius_md;
+                background: min_ta.has-hover ? Theme.surface_hover : Colors.transparent;
+
+                animate background { duration: 120ms; easing: ease-out; }
+
+                IconMinimize {
+                    x: (parent.width - self.width) / 2;
+                    y: (parent.height - self.height) / 2;
+                    icon_size: 14px;
+                    icon_color: Theme.text_secondary;
+                }
+
+                min_ta := TouchArea {
+                    mouse-cursor: pointer;
+                    clicked => { root.minimize(); }
+                }
+            }
+
+            win_close := Rectangle {
+                width: 32px;
+                height: 32px;
+                border-radius: Theme.radius_md;
+                background: close_ta.has-hover ? Theme.danger_bg : Colors.transparent;
+
+                animate background { duration: 120ms; easing: ease-out; }
+
+                IconClose {
+                    x: (parent.width - self.width) / 2;
+                    y: (parent.height - self.height) / 2;
+                    icon_size: 14px;
+                    icon_color: close_ta.has-hover ? Theme.danger_text : Theme.text_secondary;
+                }
+
+                close_ta := TouchArea {
+                    mouse-cursor: pointer;
+                    clicked => { root.close(); }
+                }
+            }
+        }
+    }
+}

@@ -10,7 +10,7 @@ impl SettingsStorage {
         let home = std::env::var("HOME").unwrap_or_else(|_| ".".to_string());
         PathBuf::from(home)
             .join(".config")
-            .join("cleaner")
+            .join("tidy-cleaner")
             .join("config.json")
     }
 

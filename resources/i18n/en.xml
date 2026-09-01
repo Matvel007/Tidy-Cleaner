@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <resources>
     <!-- App & Navigation -->
-    <string name="app.title">Linux System Manager</string>
+    <string name="app.title">Tidy Cleaner</string>
     <string name="nav.dashboard">Dashboard</string>
     <string name="nav.cleanup">Cleanup</string>
     <string name="nav.applications">Applications</string>

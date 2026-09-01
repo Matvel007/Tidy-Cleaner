@@ -7,6 +7,8 @@ mod theme;
 
 use app::AppState;
 use localization::Language;
+use std::cell::Cell;
+use std::rc::Rc;
 use std::sync::Arc;
 use std::time::Duration;
 use system::{OsInfoCollector, SystemMonitorService};
@@ -124,11 +126,49 @@ fn apply_theme(window: &AppWindow, theme_mode: ThemeMode) {
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let _ = logging::init_logging();
-    tracing::info!("Starting Linux System Manager (Cleaner)");
+    tracing::info!("Starting Tidy Cleaner");
 
     let state = Arc::new(AppState::new());
     let monitor = Arc::new(SystemMonitorService::new());
     let window = AppWindow::new()?;
+
+    // Frameless window controls: minimize
+    let win_min = window.as_weak();
+    window.on_window_minimize(move || {
+        if let Some(w) = win_min.upgrade() {
+            w.window().set_minimized(true);
+        }
+    });
+
+    // Frameless window controls: close
+    let win_close = window.as_weak();
+    window.on_window_close(move || {
+        if let Some(w) = win_close.upgrade() {
+            let _ = w.window().hide();
+        }
+    });
+
+    // Frameless window controls: drag to move
+    let win_drag = window.as_weak();
+    let drag_state: Rc<Cell<Option<(f32, f32, slint::PhysicalPosition)>>> =
+        Rc::new(Cell::new(None));
+    window.on_titlebar_drag(move |down, up, x, y| {
+        if down {
+            if let Some(w) = win_drag.upgrade() {
+                drag_state.set(Some((x, y, w.window().position())));
+            }
+        } else if up {
+            drag_state.set(None);
+        } else if let Some((start_x, start_y, origin)) = drag_state.get() {
+            if let Some(w) = win_drag.upgrade() {
+                let scale = w.window().scale_factor();
+                let nx = origin.x + ((x - start_x) * scale) as i32;
+                let ny = origin.y + ((y - start_y) * scale) as i32;
+                w.window()
+                    .set_position(slint::PhysicalPosition::new(nx, ny));
+            }
+        }
+    });
 
     // Initial state sync
     let current_theme = state.get_theme();
@@ -258,11 +298,13 @@ fn apply_snapshot_to_ui(window: &AppWindow, snapshot: &system::SystemSnapshot) {
 
     // 3. RAM
     window.set_ram_usage_str(format!("{:.1}", snapshot.memory.usage_percent).into());
-    window.set_ram_used_str(OsInfoCollector::format_bytes(snapshot.memory.used_bytes).into());
+    let ram_used_gb = snapshot.memory.used_bytes as f64 / (1024.0 * 1024.0 * 1024.0);
+    let ram_total_gb = snapshot.memory.total_bytes as f64 / (1024.0 * 1024.0 * 1024.0);
+    window.set_ram_used_str(format!("{:.1}", ram_used_gb).into());
     window.set_ram_available_str(
         OsInfoCollector::format_bytes(snapshot.memory.available_bytes).into(),
     );
-    window.set_ram_total_str(OsInfoCollector::format_bytes(snapshot.memory.total_bytes).into());
+    window.set_ram_total_str(format!("{:.1} GB", ram_total_gb).into());
     let ram_arc = system::generate_arc_svg_path(60.0, 60.0, 48.0, snapshot.memory.usage_percent);
     window.set_ram_arc_path(ram_arc.into());
 

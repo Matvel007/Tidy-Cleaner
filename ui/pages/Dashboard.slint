@@ -4,7 +4,7 @@ import { I18n } from "../I18n.slint";
 import { Card } from "../components/Card.slint";
 import { CircularGauge } from "../components/CircularGauge.slint";
 import { TemperatureCard } from "../components/TemperatureCard.slint";
-import { IconDisk } from "../components/Icons.slint";
+import { DiskCard } from "../components/DiskCard.slint";
 
 export component DashboardPage inherits VerticalLayout {
     // CPU Metrics
@@ -63,6 +63,7 @@ export component DashboardPage inherits VerticalLayout {
 
     HorizontalLayout {
         spacing: 12px;
+        vertical-stretch: 1;
 
         // LEFT SECTION: 3 Wide Circular Gauges (Top) and Full Storage Card (Bottom)
         VerticalLayout {
@@ -72,7 +73,7 @@ export component DashboardPage inherits VerticalLayout {
             // TOP ROW: 3 Circular Gauges
             HorizontalLayout {
                 spacing: 12px;
-                height: 200px;
+                height: 220px;
 
                 // 1. CPU Gauge
                 CircularGauge {
@@ -108,183 +109,32 @@ export component DashboardPage inherits VerticalLayout {
                 }
             }
 
-            // BOTTOM ROW: Storage Card (Increased Height: 184px)
-            Card {
-                height: 184px;
-                padding_horizontal: 18px;
-                padding_vertical: 14px;
+            // BOTTOM ROW: Separate Disk Cards
+            HorizontalLayout {
+                spacing: 12px;
+                vertical-stretch: 1;
+                min-height: 184px;
 
-                VerticalLayout {
-                    spacing: root.has_disk2 ? 10px : 14px;
-                    alignment: space-between;
+                DiskCard {
+                    vertical-stretch: 1;
+                    disk_name: root.disk1_name != "" ? root.disk1_name : I18n.dashboard_storage_primary;
+                    file_system: root.disk1_fs;
+                    used_str: root.disk1_used_str;
+                    total_str: root.disk1_total_str;
+                    free_str: root.disk1_free_str;
+                    usage_ratio: root.disk1_usage_ratio;
+                    percent_str: root.disk1_percent_str;
+                }
 
-                    // Disk 1 Section
-                    VerticalLayout {
-                        spacing: 6px;
-
-                        // Header
-                        HorizontalLayout {
-                            alignment: space-between;
-
-                            HorizontalLayout {
-                                spacing: 8px;
-                                alignment: start;
-
-                                IconDisk {
-                                    y: (parent.height - self.height) / 2;
-                                    icon_size: 15px;
-                                }
-
-                                Text {
-                                    text: root.disk1_name != "" ? root.disk1_name : I18n.dashboard_storage_primary;
-                                    font-family: Typography.font_family;
-                                    font-size: root.has_disk2 ? Typography.size_sm : Typography.size_base;
-                                    font-weight: Typography.weight_semibold;
-                                    color: Theme.text_primary;
-                                    vertical-alignment: center;
-                                }
-                            }
-
-                            Text {
-                                text: root.disk1_percent_str;
-                                font-family: Typography.font_mono;
-                                font-size: Typography.size_sm;
-                                font-weight: Typography.weight_bold;
-                                color: Theme.text_primary;
-                                vertical-alignment: center;
-                            }
-                        }
-
-                        // Progress Bar
-                        Rectangle {
-                            height: 6px;
-                            border-radius: 3px;
-                            background: Theme.surface_secondary;
-                            clip: true;
-
-                            Rectangle {
-                                x: 0px;
-                                y: 0px;
-                                width: parent.width * Math.min(1.0, Math.max(0.0, root.disk1_usage_ratio));
-                                height: 100%;
-                                border-radius: 3px;
-                                background: root.disk1_usage_ratio > 0.9 ? Theme.danger :
-                                    root.disk1_usage_ratio > 0.75 ? Theme.warning : Theme.disk_chart;
-
-                                animate width { duration: 250ms; easing: ease-out; }
-                            }
-                        }
-
-                        // Details Grid
-                        HorizontalLayout {
-                            alignment: space-between;
-
-                            Text {
-                                text: I18n.dashboard_storage_used + ": " + root.disk1_used_str;
-                                font-size: Typography.size_xs;
-                                color: Theme.text_muted;
-                            }
-                            Text {
-                                text: I18n.dashboard_storage_free + ": " + root.disk1_free_str;
-                                font-size: Typography.size_xs;
-                                color: Theme.text_muted;
-                            }
-                            Text {
-                                text: I18n.dashboard_storage_total + ": " + root.disk1_total_str;
-                                font-size: Typography.size_xs;
-                                color: Theme.text_muted;
-                            }
-                            Text {
-                                text: root.disk1_fs;
-                                font-size: Typography.size_xs;
-                                color: Theme.text_secondary;
-                            }
-                        }
-                    }
-
-                    // Disk 2 Section (if present)
-                    if root.has_disk2: VerticalLayout {
-                        spacing: 6px;
-
-                        // Header
-                        HorizontalLayout {
-                            alignment: space-between;
-
-                            HorizontalLayout {
-                                spacing: 8px;
-                                alignment: start;
-
-                                IconDisk {
-                                    y: (parent.height - self.height) / 2;
-                                    icon_size: 15px;
-                                }
-
-                                Text {
-                                    text: root.disk2_name != "" ? root.disk2_name : I18n.dashboard_storage_secondary;
-                                    font-family: Typography.font_family;
-                                    font-size: Typography.size_sm;
-                                    font-weight: Typography.weight_semibold;
-                                    color: Theme.text_primary;
-                                    vertical-alignment: center;
-                                }
-                            }
-
-                            Text {
-                                text: root.disk2_percent_str;
-                                font-family: Typography.font_mono;
-                                font-size: Typography.size_sm;
-                                font-weight: Typography.weight_bold;
-                                color: Theme.text_primary;
-                                vertical-alignment: center;
-                            }
-                        }
-
-                        // Progress Bar
-                        Rectangle {
-                            height: 6px;
-                            border-radius: 3px;
-                            background: Theme.surface_secondary;
-                            clip: true;
-
-                            Rectangle {
-                                x: 0px;
-                                y: 0px;
-                                width: parent.width * Math.min(1.0, Math.max(0.0, root.disk2_usage_ratio));
-                                height: 100%;
-                                border-radius: 3px;
-                                background: root.disk2_usage_ratio > 0.9 ? Theme.danger :
-                                    root.disk2_usage_ratio > 0.75 ? Theme.warning : Theme.disk_chart;
-
-                                animate width { duration: 250ms; easing: ease-out; }
-                            }
-                        }
-
-                        // Details Grid
-                        HorizontalLayout {
-                            alignment: space-between;
-
-                            Text {
-                                text: I18n.dashboard_storage_used + ": " + root.disk2_used_str;
-                                font-size: Typography.size_xs;
-                                color: Theme.text_muted;
-                            }
-                            Text {
-                                text: I18n.dashboard_storage_free + ": " + root.disk2_free_str;
-                                font-size: Typography.size_xs;
-                                color: Theme.text_muted;
-                            }
-                            Text {
-                                text: I18n.dashboard_storage_total + ": " + root.disk2_total_str;
-                                font-size: Typography.size_xs;
-                                color: Theme.text_muted;
-                            }
-                            Text {
-                                text: root.disk2_fs;
-                                font-size: Typography.size_xs;
-                                color: Theme.text_secondary;
-                            }
-                        }
-                    }
+                if root.has_disk2: DiskCard {
+                    vertical-stretch: 1;
+                    disk_name: root.disk2_name != "" ? root.disk2_name : I18n.dashboard_storage_secondary;
+                    file_system: root.disk2_fs;
+                    used_str: root.disk2_used_str;
+                    total_str: root.disk2_total_str;
+                    free_str: root.disk2_free_str;
+                    usage_ratio: root.disk2_usage_ratio;
+                    percent_str: root.disk2_percent_str;
                 }
             }
         }
@@ -296,16 +146,17 @@ export component DashboardPage inherits VerticalLayout {
 
             // Top: Temperature Card
             TemperatureCard {
-                height: 200px;
+                height: 220px;
                 cpu_temp_str: root.cpu_temp_str;
                 cpu_temp_val: root.cpu_temp_val;
                 gpu_temp_str: root.gpu_temp_str;
                 gpu_temp_val: root.gpu_temp_val;
             }
 
-            // Bottom: System Overview Card (Increased Height: 184px)
+            // Bottom: System Overview Card
             Card {
-                height: 184px;
+                vertical-stretch: 1;
+                min-height: 184px;
                 padding_horizontal: 18px;
                 padding_vertical: 14px;
 

@@ -89,14 +89,16 @@ export component CircularGauge inherits Card {
             }
         }
 
-        // Bottom Subtext Info
+        // Bottom Subtext Info (wraps up to 2 lines so long CPU/GPU names fit)
         if root.subtext_bottom != "": Text {
             text: root.subtext_bottom;
             font-family: Typography.font_family;
             font-size: Typography.size_xs;
             color: Theme.text_secondary;
             horizontal-alignment: center;
-            overflow: elide;
+            vertical-alignment: center;
+            wrap: word-wrap;
+            min-height: 26px;
         }
     }
 }

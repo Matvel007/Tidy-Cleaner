@@ -789,24 +789,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "cleaner"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "quick-xml 0.37.5",
- "serde",
- "serde_json",
- "slint",
- "slint-build",
- "sysinfo",
- "thiserror 2.0.20",
- "tokio",
- "tracing",
- "tracing-subscriber",
- "walkdir",
-]
-
-[[package]]
 name = "clipboard-win"
 version = "5.4.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4900,6 +4882,24 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1ad99c4c6d32803332c548b1af0540b357b3f5fc0be8f6c6bfe8b2e6ae784070"
 dependencies = [
  "cfg-if",
+]
+
+[[package]]
+name = "tidy-cleaner"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "quick-xml 0.37.5",
+ "serde",
+ "serde_json",
+ "slint",
+ "slint-build",
+ "sysinfo",
+ "thiserror 2.0.20",
+ "tokio",
+ "tracing",
+ "tracing-subscriber",
+ "walkdir",
 ]
 
 [[package]]

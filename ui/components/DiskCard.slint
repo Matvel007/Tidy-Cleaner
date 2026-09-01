@@ -5,45 +5,63 @@ import { Card } from "Card.slint";
 import { IconDisk } from "Icons.slint";
 
 export component DiskCard inherits Card {
-    in property <string> mount_point: "/";
-    in property <string> disk_name: "Root Partition";
-    in property <string> used_formatted: "0 GB";
-    in property <string> total_formatted: "0 GB";
-    in property <float> usage_ratio: 0.0; // 0.0 .. 1.0
+    in property <string> disk_name: I18n.dashboard_storage_primary;
+    in property <string> file_system: "btrfs";
+    in property <string> used_str: "0 GB";
+    in property <string> total_str: "0 GB";
+    in property <string> free_str: "0 GB";
+    in property <float> usage_ratio: 0.0;
+    in property <string> percent_str: "0%";
+
+    padding_horizontal: 16px;
+    padding_vertical: 14px;
 
     VerticalLayout {
-        spacing: 12px;
+        spacing: 10px;
+        alignment: space-between;
 
+        // Header
         HorizontalLayout {
             alignment: space-between;
 
             HorizontalLayout {
                 spacing: 8px;
-                alignment: start;
 
                 IconDisk {
                     y: (parent.height - self.height) / 2;
-                    icon_size: 16px;
+                    icon_size: 15px;
                 }
 
                 Text {
-                    text: root.mount_point;
-                    font-family: Typography.font_mono;
-                    font-size: Typography.size_base;
+                    text: root.disk_name;
+                    font-family: Typography.font_family;
+                    font-size: Typography.size_sm;
                     font-weight: Typography.weight_semibold;
                     color: Theme.text_primary;
+                    vertical-alignment: center;
                 }
             }
 
             Text {
-                text: root.disk_name;
-                font-family: Typography.font_family;
-                font-size: Typography.size_xs;
-                color: Theme.text_muted;
+                text: root.percent_str;
+                font-family: Typography.font_mono;
+                font-size: Typography.size_sm;
+                font-weight: Typography.weight_bold;
+                color: Theme.text_primary;
+                vertical-alignment: center;
             }
         }
 
-        // Progress bar track
+        // Used / Total
+        Text {
+            text: root.used_str + " / " + root.total_str;
+            font-family: Typography.font_family;
+            font-size: Typography.size_base;
+            font-weight: Typography.weight_semibold;
+            color: Theme.text_primary;
+        }
+
+        // Progress Bar
         Rectangle {
             height: 6px;
             border-radius: 3px;
@@ -63,21 +81,22 @@ export component DiskCard inherits Card {
             }
         }
 
+        // Details
         HorizontalLayout {
             alignment: space-between;
 
             Text {
-                text: I18n.common_used + ": " + root.used_formatted;
-                font-family: Typography.font_family;
-                font-size: Typography.size_xs;
-                color: Theme.text_secondary;
-            }
-
-            Text {
-                text: I18n.common_total + ": " + root.total_formatted;
+                text: I18n.dashboard_storage_free + ": " + root.free_str;
                 font-family: Typography.font_family;
                 font-size: Typography.size_xs;
                 color: Theme.text_muted;
+            }
+
+            Text {
+                text: root.file_system;
+                font-family: Typography.font_mono;
+                font-size: Typography.size_xs;
+                color: Theme.text_secondary;
             }
         }
     }

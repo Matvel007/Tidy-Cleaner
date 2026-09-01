@@ -8,8 +8,8 @@ pub fn init_logging() -> Result<PathBuf> {
     let log_dir = dirs_log_path();
     std::fs::create_dir_all(&log_dir)?;
 
-    let filter =
-        EnvFilter::try_from_default_env().unwrap_or_else(|_| EnvFilter::new("cleaner=debug,info"));
+    let filter = EnvFilter::try_from_default_env()
+        .unwrap_or_else(|_| EnvFilter::new("tidy_cleaner=debug,info"));
 
     let stdout_layer = fmt::layer().with_ansi(true).with_target(true);
 
@@ -28,6 +28,6 @@ pub fn dirs_log_path() -> PathBuf {
     PathBuf::from(home)
         .join(".local")
         .join("share")
-        .join("cleaner")
+        .join("tidy-cleaner")
         .join("logs")
 }

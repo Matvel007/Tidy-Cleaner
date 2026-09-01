@@ -156,6 +156,21 @@ export component IconClose inherits Rectangle {
     }
 }
 
+export component IconMinimize inherits Rectangle {
+    in property <color> icon_color: Theme.text_secondary;
+    in property <length> icon_size: 14px;
+    width: icon_size;
+    height: icon_size;
+
+    Path {
+        width: 100%;
+        height: 100%;
+        stroke: icon_color;
+        stroke-width: 1.5px;
+        commands: "M 3 7 L 11 7";
+    }
+}
+
 export component IconRefresh inherits Rectangle {
     in property <color> icon_color: Theme.text_primary;
     in property <length> icon_size: 16px;

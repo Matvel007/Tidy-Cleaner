@@ -3,6 +3,7 @@ import { Typography } from "theme/Typography.slint";
 import { I18n } from "I18n.slint";
 import { Sidebar } from "components/Sidebar.slint";
 import { TopBar } from "components/TopBar.slint";
+import { TitleBar } from "components/TitleBar.slint";
 import { DashboardPage } from "pages/Dashboard.slint";
 import { CleanupPage } from "pages/Cleanup.slint";
 import { ApplicationsPage } from "pages/Applications.slint";
@@ -13,10 +14,13 @@ export { Theme, Typography, I18n }
 
 export component AppWindow inherits Window {
     title: I18n.app_title;
+    no-frame: true;
     preferred-width: 960px;
-    preferred-height: 520px;
-    min-width: 800px;
-    min-height: 460px;
+    preferred-height: 540px;
+    min-width: 960px;
+    max-width: 960px;
+    min-height: 540px;
+    max-height: 540px;
     background: Theme.background;
     default-font-family: Typography.font_family;
 
@@ -77,9 +81,14 @@ export component AppWindow inherits Window {
     in-out property <string> hostname: "-";
     in-out property <string> uptime_str: "-";
 
+    // Window callbacks
+    callback window_minimize();
+    callback window_close();
+    callback titlebar_drag(down: bool, up: bool, x: length, y: length);
+
     // Callbacks to Rust
     callback page_selected(int);
-    
+
     // Settings callbacks
     callback settings_theme_changed(int);
     callback settings_lang_changed(string);
@@ -99,116 +108,129 @@ export component AppWindow inherits Window {
     callback applications_uninstall();
     callback startup_add_app();
 
-    HorizontalLayout {
+    VerticalLayout {
         spacing: 0px;
 
-        // Collapsible Left Navigation
-        Sidebar {
-            active_page <=> root.current_page;
-            is_expanded <=> root.sidebar_expanded;
-            page_changed(idx) => {
-                root.page_selected(idx);
-            }
+        // Custom frameless titlebar
+        TitleBar {
+            title: I18n.app_title;
+            minimize => { root.window_minimize(); }
+            close => { root.window_close(); }
+            drag(down, up, x, y) => { root.titlebar_drag(down, up, x, y); }
         }
 
-        // Main Content Area
-        VerticalLayout {
+        HorizontalLayout {
             spacing: 0px;
-            horizontal-stretch: 1;
+            vertical-stretch: 1;
 
-            // Clean Top Header Bar
-            TopBar {
-                title: root.current_page == 0 ? I18n.nav_dashboard :
-                    root.current_page == 1 ? I18n.nav_cleanup :
-                    root.current_page == 2 ? I18n.nav_applications :
-                    root.current_page == 3 ? I18n.nav_startup :
-                    I18n.nav_settings;
-                
-                subtitle: root.current_page == 0 ? I18n.dashboard_subtitle :
-                    root.current_page == 1 ? I18n.cleanup_subtitle :
-                    root.current_page == 2 ? I18n.applications_subtitle :
-                    root.current_page == 3 ? I18n.startup_subtitle :
-                    I18n.settings_subtitle;
+            // Collapsible Left Navigation
+            Sidebar {
+                active_page <=> root.current_page;
+                is_expanded <=> root.sidebar_expanded;
+                page_changed(idx) => {
+                    root.page_selected(idx);
+                }
             }
 
-            // Active Page View
-            Rectangle {
-                vertical-stretch: 1;
-                background: Theme.background;
+            // Main Content Area
+            VerticalLayout {
+                spacing: 0px;
+                horizontal-stretch: 1;
 
-                if root.current_page == 0: DashboardPage {
-                    cpu_usage_str: root.cpu_usage_str;
-                    cpu_cores_str: root.cpu_cores_str;
-                    cpu_freq_str: root.cpu_freq_str;
-                    cpu_brand: root.cpu_brand;
-                    cpu_arc_path: root.cpu_arc_path;
+                // Page Header Bar
+                TopBar {
+                    title: root.current_page == 0 ? I18n.nav_dashboard :
+                        root.current_page == 1 ? I18n.nav_cleanup :
+                        root.current_page == 2 ? I18n.nav_applications :
+                        root.current_page == 3 ? I18n.nav_startup :
+                        I18n.nav_settings;
 
-                    gpu_usage_str: root.gpu_usage_str;
-                    gpu_name: root.gpu_name;
-                    gpu_vram_str: root.gpu_vram_str;
-                    gpu_arc_path: root.gpu_arc_path;
-
-                    ram_usage_str: root.ram_usage_str;
-                    ram_used_str: root.ram_used_str;
-                    ram_available_str: root.ram_available_str;
-                    ram_total_str: root.ram_total_str;
-                    ram_arc_path: root.ram_arc_path;
-
-                    cpu_temp_str: root.cpu_temp_str;
-                    cpu_temp_val: root.cpu_temp_val;
-                    gpu_temp_str: root.gpu_temp_str;
-                    gpu_temp_val: root.gpu_temp_val;
-
-                    disk1_name: root.disk1_name;
-                    disk1_fs: root.disk1_fs;
-                    disk1_used_str: root.disk1_used_str;
-                    disk1_total_str: root.disk1_total_str;
-                    disk1_free_str: root.disk1_free_str;
-                    disk1_usage_ratio: root.disk1_usage_ratio;
-                    disk1_percent_str: root.disk1_percent_str;
-
-                    has_disk2: root.has_disk2;
-                    disk2_name: root.disk2_name;
-                    disk2_fs: root.disk2_fs;
-                    disk2_used_str: root.disk2_used_str;
-                    disk2_total_str: root.disk2_total_str;
-                    disk2_free_str: root.disk2_free_str;
-                    disk2_usage_ratio: root.disk2_usage_ratio;
-                    disk2_percent_str: root.disk2_percent_str;
-
-                    os_name: root.os_name;
-                    kernel_version: root.kernel_version;
-                    hostname: root.hostname;
-                    uptime_str: root.uptime_str;
+                    subtitle: root.current_page == 0 ? I18n.dashboard_subtitle :
+                        root.current_page == 1 ? I18n.cleanup_subtitle :
+                        root.current_page == 2 ? I18n.applications_subtitle :
+                        root.current_page == 3 ? I18n.startup_subtitle :
+                        I18n.settings_subtitle;
                 }
 
-                if root.current_page == 1: CleanupPage {
-                    start_fast_scan => { root.cleanup_fast_scan(); }
-                    start_full_scan => { root.cleanup_full_scan(); }
-                    clean_selected => { root.cleanup_clean_selected(); }
-                }
+                // Active Page View
+                Rectangle {
+                    vertical-stretch: 1;
+                    background: Theme.background;
 
-                if root.current_page == 2: ApplicationsPage {
-                    search_changed(q) => { root.applications_search(q); }
-                    page_changed(p) => { root.applications_page_change(p); }
-                    uninstall_selected => { root.applications_uninstall(); }
-                }
+                    if root.current_page == 0: DashboardPage {
+                        cpu_usage_str: root.cpu_usage_str;
+                        cpu_cores_str: root.cpu_cores_str;
+                        cpu_freq_str: root.cpu_freq_str;
+                        cpu_brand: root.cpu_brand;
+                        cpu_arc_path: root.cpu_arc_path;
 
-                if root.current_page == 3: StartupPage {
-                    add_app_clicked => { root.startup_add_app(); }
-                }
+                        gpu_usage_str: root.gpu_usage_str;
+                        gpu_name: root.gpu_name;
+                        gpu_vram_str: root.gpu_vram_str;
+                        gpu_arc_path: root.gpu_arc_path;
 
-                if root.current_page == 4: SettingsPage {
-                    theme_mode: root.theme_mode;
-                    current_lang: root.current_lang;
-                    theme_changed(m) => { root.settings_theme_changed(m); }
-                    lang_changed(l) => { root.settings_lang_changed(l); }
-                    autostart_toggled(v) => { root.settings_autostart_toggled(v); }
-                    start_minimized_toggled(v) => { root.settings_start_minimized_toggled(v); }
-                    start_in_tray_toggled(v) => { root.settings_start_in_tray_toggled(v); }
-                    confirm_delete_toggled(v) => { root.settings_confirm_delete_toggled(v); }
-                    show_hidden_toggled(v) => { root.settings_show_hidden_toggled(v); }
-                    open_logs_clicked => { root.settings_open_logs_clicked(); }
+                        ram_usage_str: root.ram_usage_str;
+                        ram_used_str: root.ram_used_str;
+                        ram_available_str: root.ram_available_str;
+                        ram_total_str: root.ram_total_str;
+                        ram_arc_path: root.ram_arc_path;
+
+                        cpu_temp_str: root.cpu_temp_str;
+                        cpu_temp_val: root.cpu_temp_val;
+                        gpu_temp_str: root.gpu_temp_str;
+                        gpu_temp_val: root.gpu_temp_val;
+
+                        disk1_name: root.disk1_name;
+                        disk1_fs: root.disk1_fs;
+                        disk1_used_str: root.disk1_used_str;
+                        disk1_total_str: root.disk1_total_str;
+                        disk1_free_str: root.disk1_free_str;
+                        disk1_usage_ratio: root.disk1_usage_ratio;
+                        disk1_percent_str: root.disk1_percent_str;
+
+                        has_disk2: root.has_disk2;
+                        disk2_name: root.disk2_name;
+                        disk2_fs: root.disk2_fs;
+                        disk2_used_str: root.disk2_used_str;
+                        disk2_total_str: root.disk2_total_str;
+                        disk2_free_str: root.disk2_free_str;
+                        disk2_usage_ratio: root.disk2_usage_ratio;
+                        disk2_percent_str: root.disk2_percent_str;
+
+                        os_name: root.os_name;
+                        kernel_version: root.kernel_version;
+                        hostname: root.hostname;
+                        uptime_str: root.uptime_str;
+                    }
+
+                    if root.current_page == 1: CleanupPage {
+                        start_fast_scan => { root.cleanup_fast_scan(); }
+                        start_full_scan => { root.cleanup_full_scan(); }
+                        clean_selected => { root.cleanup_clean_selected(); }
+                    }
+
+                    if root.current_page == 2: ApplicationsPage {
+                        search_changed(q) => { root.applications_search(q); }
+                        page_changed(p) => { root.applications_page_change(p); }
+                        uninstall_selected => { root.applications_uninstall(); }
+                    }
+
+                    if root.current_page == 3: StartupPage {
+                        add_app_clicked => { root.startup_add_app(); }
+                    }
+
+                    if root.current_page == 4: SettingsPage {
+                        theme_mode: root.theme_mode;
+                        current_lang: root.current_lang;
+                        theme_changed(m) => { root.settings_theme_changed(m); }
+                        lang_changed(l) => { root.settings_lang_changed(l); }
+                        autostart_toggled(v) => { root.settings_autostart_toggled(v); }
+                        start_minimized_toggled(v) => { root.settings_start_minimized_toggled(v); }
+                        start_in_tray_toggled(v) => { root.settings_start_in_tray_toggled(v); }
+                        confirm_delete_toggled(v) => { root.settings_confirm_delete_toggled(v); }
+                        show_hidden_toggled(v) => { root.settings_show_hidden_toggled(v); }
+                        open_logs_clicked => { root.settings_open_logs_clicked(); }
+                    }
                 }
             }
         }
