@@ -125,6 +125,11 @@ fn apply_theme(window: &AppWindow, theme_mode: ThemeMode) {
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    // Enable seamless frameless window dragging & positioning on Linux
+    if std::env::var_os("WINIT_UNIX_BACKEND").is_none() && std::env::var_os("DISPLAY").is_some() {
+        std::env::set_var("WINIT_UNIX_BACKEND", "x11");
+    }
+
     let _ = logging::init_logging();
     tracing::info!("Starting Tidy Cleaner");
 

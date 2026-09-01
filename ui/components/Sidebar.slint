@@ -36,47 +36,56 @@ component NavItem inherits Rectangle {
         background: Theme.accent;
     }
 
-    HorizontalLayout {
-        padding-left: root.expanded ? 14px : 0px;
-        padding-right: root.expanded ? 14px : 0px;
-        spacing: 12px;
-        alignment: root.expanded ? start : center;
+    // Icon Container: Always at fixed 13px, perfectly centered when collapsed (44px item)
+    Rectangle {
+        x: 13px;
+        y: (parent.height - 18px) / 2;
+        width: 18px;
+        height: 18px;
 
-        // Icons
         if root.index == 0: IconDashboard {
-            y: (parent.height - self.height) / 2;
-            icon_size: 18px;
+            width: 100%;
+            height: 100%;
             icon_color: is_active ? Theme.text_primary : (touch.has-hover ? Theme.text_primary : Theme.text_secondary);
         }
         if root.index == 1: IconCleanup {
-            y: (parent.height - self.height) / 2;
-            icon_size: 18px;
+            width: 100%;
+            height: 100%;
             icon_color: is_active ? Theme.text_primary : (touch.has-hover ? Theme.text_primary : Theme.text_secondary);
         }
         if root.index == 2: IconApplications {
-            y: (parent.height - self.height) / 2;
-            icon_size: 18px;
+            width: 100%;
+            height: 100%;
             icon_color: is_active ? Theme.text_primary : (touch.has-hover ? Theme.text_primary : Theme.text_secondary);
         }
         if root.index == 3: IconStartup {
-            y: (parent.height - self.height) / 2;
-            icon_size: 18px;
+            width: 100%;
+            height: 100%;
             icon_color: is_active ? Theme.text_primary : (touch.has-hover ? Theme.text_primary : Theme.text_secondary);
         }
         if root.index == 4: IconSettings {
-            y: (parent.height - self.height) / 2;
-            icon_size: 18px;
+            width: 100%;
+            height: 100%;
             icon_color: is_active ? Theme.text_primary : (touch.has-hover ? Theme.text_primary : Theme.text_secondary);
         }
+    }
 
-        if root.expanded: Text {
-            text: root.title;
-            font-family: Typography.font_family;
-            font-size: Typography.size_base;
-            font-weight: is_active ? Typography.weight_semibold : Typography.weight_normal;
-            color: is_active ? Theme.text_primary : (touch.has-hover ? Theme.text_primary : Theme.text_secondary);
-            vertical-alignment: center;
-        }
+    // Label Text: Smoothly fades in/out with no DOM recreation jump
+    Text {
+        x: 44px;
+        y: 0px;
+        width: parent.width - 48px;
+        height: parent.height;
+        text: root.title;
+        font-family: Typography.font_family;
+        font-size: Typography.size_base;
+        font-weight: is_active ? Typography.weight_semibold : Typography.weight_normal;
+        color: is_active ? Theme.text_primary : (touch.has-hover ? Theme.text_primary : Theme.text_secondary);
+        vertical-alignment: center;
+        overflow: elide;
+        opacity: root.expanded ? 1.0 : 0.0;
+
+        animate opacity { duration: 140ms; easing: ease-out; }
     }
 
     touch := TouchArea {
@@ -99,7 +108,7 @@ export component Sidebar inherits Rectangle {
     border-width: 0px;
     clip: true;
 
-    animate width { duration: 180ms; easing: ease-out; }
+    animate width { duration: 200ms; easing: ease-out; }
 
     // Right border line
     Rectangle {
@@ -114,15 +123,13 @@ export component Sidebar inherits Rectangle {
         spacing: 6px;
 
         // Header with expand/collapse button
-        HorizontalLayout {
-            padding-left: root.is_expanded ? 6px : 0px;
-            padding-right: root.is_expanded ? 6px : 0px;
-            padding-top: 4px;
-            padding-bottom: 12px;
-            alignment: root.is_expanded ? start : center;
+        Rectangle {
+            height: 38px;
 
-            // Menu Toggle button
+            // Menu Toggle button: perfectly centered in 44px width
             toggle_btn := Rectangle {
+                x: 5px;
+                y: (parent.height - self.height) / 2;
                 width: 34px;
                 height: 34px;
                 border-radius: Theme.radius_md;
