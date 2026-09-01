@@ -14,12 +14,12 @@ export component CircularGauge inherits Card {
     padding_vertical: 14px;
 
     VerticalLayout {
-        spacing: 10px;
+        spacing: 8px;
         alignment: center;
 
         // Card Header Title with safe spacing
         HorizontalLayout {
-            spacing: 12px;
+            spacing: 8px;
             alignment: space-between;
 
             Text {
@@ -42,24 +42,31 @@ export component CircularGauge inherits Card {
         }
 
         // Circular Gauge Visual
-        gauge_area := Rectangle {
+        Rectangle {
             width: 120px;
             height: 120px;
-            clip: false;
 
-            // Background Full Ring
+            // Background Full Ring (fixed viewbox coordinates 0..120)
             Path {
                 width: 100%;
                 height: 100%;
+                viewbox-x: 0;
+                viewbox-y: 0;
+                viewbox-width: 120;
+                viewbox-height: 120;
                 stroke: Theme.surface_secondary;
                 stroke-width: 8px;
-                commands: "M 60 10 A 50 50 0 1 1 59.99 10 Z";
+                commands: "M 60 12 A 48 48 0 1 1 59.99 12 Z";
             }
 
-            // Foreground Progress Arc
+            // Foreground Progress Arc (fixed viewbox coordinates 0..120)
             if root.arc_path != "": Path {
                 width: 100%;
                 height: 100%;
+                viewbox-x: 0;
+                viewbox-y: 0;
+                viewbox-width: 120;
+                viewbox-height: 120;
                 stroke: root.ring_color;
                 stroke-width: 8px;
                 commands: root.arc_path;

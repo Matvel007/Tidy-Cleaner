@@ -226,7 +226,7 @@ fn apply_snapshot_to_ui(window: &AppWindow, snapshot: &system::SystemSnapshot) {
     window.set_cpu_cores_str(format!("{}", snapshot.cpu.core_count).into());
     window.set_cpu_freq_str(format!("{} MHz", snapshot.cpu.frequency_mhz).into());
     window.set_cpu_brand(snapshot.cpu.brand_name.clone().into());
-    let cpu_arc = system::generate_arc_svg_path(60.0, 60.0, 50.0, snapshot.cpu.usage_percent);
+    let cpu_arc = system::generate_arc_svg_path(60.0, 60.0, 48.0, snapshot.cpu.usage_percent);
     window.set_cpu_arc_path(cpu_arc.into());
 
     // 2. GPU
@@ -242,7 +242,7 @@ fn apply_snapshot_to_ui(window: &AppWindow, snapshot: &system::SystemSnapshot) {
         "Active".to_string()
     };
     window.set_gpu_vram_str(gpu_vram_formatted.into());
-    let gpu_arc = system::generate_arc_svg_path(60.0, 60.0, 50.0, snapshot.gpu.usage_percent);
+    let gpu_arc = system::generate_arc_svg_path(60.0, 60.0, 48.0, snapshot.gpu.usage_percent);
     window.set_gpu_arc_path(gpu_arc.into());
 
     // 3. RAM
@@ -252,7 +252,7 @@ fn apply_snapshot_to_ui(window: &AppWindow, snapshot: &system::SystemSnapshot) {
         OsInfoCollector::format_bytes(snapshot.memory.available_bytes).into(),
     );
     window.set_ram_total_str(OsInfoCollector::format_bytes(snapshot.memory.total_bytes).into());
-    let ram_arc = system::generate_arc_svg_path(60.0, 60.0, 50.0, snapshot.memory.usage_percent);
+    let ram_arc = system::generate_arc_svg_path(60.0, 60.0, 48.0, snapshot.memory.usage_percent);
     window.set_ram_arc_path(ram_arc.into());
 
     // 4. Storage (Primary Drive)

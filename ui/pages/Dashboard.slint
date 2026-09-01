@@ -43,11 +43,12 @@ export component DashboardPage inherits VerticalLayout {
 
     padding: 16px;
     spacing: 14px;
+    alignment: start;
 
     // TOP ROW: 3 Circular Gauges (CPU, GPU, RAM)
     HorizontalLayout {
         spacing: 12px;
-        height: 200px;
+        height: 204px;
 
         // 1. CPU Gauge
         CircularGauge {
@@ -86,7 +87,7 @@ export component DashboardPage inherits VerticalLayout {
     // BOTTOM ROW: Storage (Left) & Compact System Info (Right)
     HorizontalLayout {
         spacing: 12px;
-        vertical-stretch: 1;
+        height: 170px;
 
         // Storage Card (Primary Drive)
         Card {
@@ -95,7 +96,7 @@ export component DashboardPage inherits VerticalLayout {
             padding_vertical: 14px;
 
             VerticalLayout {
-                spacing: 10px;
+                spacing: 12px;
                 alignment: space-between;
 
                 // Header
@@ -182,7 +183,7 @@ export component DashboardPage inherits VerticalLayout {
             }
         }
 
-        // Compact Terminal-Style System Info Card
+        // Compact Terminal-Style System Info Card (Disk line removed)
         Card {
             horizontal-stretch: 1;
             padding_horizontal: 18px;
@@ -235,15 +236,6 @@ export component DashboardPage inherits VerticalLayout {
                     Text { text: "❯"; font-family: Typography.font_mono; font-size: Typography.size_xs; font-weight: Typography.weight_bold; color: Theme.accent; }
                     Text { text: "Memory:"; font-family: Typography.font_mono; font-size: Typography.size_xs; font-weight: Typography.weight_bold; color: Theme.text_secondary; width: 60px; }
                     Text { text: root.ram_used_str + " / " + root.ram_total_str + " (" + root.ram_usage_str + "%)"; font-family: Typography.font_mono; font-size: Typography.size_xs; color: Theme.text_primary; }
-                }
-
-                // Line 6: Disk
-                HorizontalLayout {
-                    spacing: 8px;
-                    alignment: start;
-                    Text { text: "❯"; font-family: Typography.font_mono; font-size: Typography.size_xs; font-weight: Typography.weight_bold; color: Theme.accent; }
-                    Text { text: "Disk:"; font-family: Typography.font_mono; font-size: Typography.size_xs; font-weight: Typography.weight_bold; color: Theme.text_secondary; width: 60px; }
-                    Text { text: root.disk_used_str + " / " + root.disk_total_str + " (" + root.disk_percent_str + ")"; font-family: Typography.font_mono; font-size: Typography.size_xs; color: Theme.text_primary; }
                 }
             }
         }
