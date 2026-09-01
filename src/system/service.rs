@@ -4,6 +4,7 @@ use super::gpu::GpuCollector;
 use super::memory::MemoryCollector;
 use super::models::SystemSnapshot;
 use super::os_info::OsInfoCollector;
+use super::temperature::TemperatureCollector;
 use std::sync::{Arc, Mutex};
 use sysinfo::{CpuRefreshKind, MemoryRefreshKind, RefreshKind, System};
 
@@ -42,6 +43,7 @@ impl SystemMonitorService {
         let gpu = GpuCollector::collect();
         let memory = mem_col.collect(&mut sys);
         let disks = DiskCollector::collect_disks();
+        let temperature = TemperatureCollector::collect();
         let overview = OsInfoCollector::collect_overview(&sys);
 
         SystemSnapshot {
@@ -49,6 +51,7 @@ impl SystemMonitorService {
             gpu,
             memory,
             disks,
+            temperature,
             overview,
         }
     }

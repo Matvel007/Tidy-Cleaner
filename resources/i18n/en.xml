@@ -37,11 +37,21 @@
     <string name="dashboard.ram_available">Available</string>
     <string name="dashboard.disks">Storage Disks</string>
     <string name="dashboard.system_info">System Information</string>
+    <string name="dashboard.system_overview">System Overview</string>
     <string name="dashboard.os">Operating System</string>
     <string name="dashboard.kernel">Kernel</string>
     <string name="dashboard.arch">Architecture</string>
     <string name="dashboard.hostname">Hostname</string>
     <string name="dashboard.uptime">Uptime</string>
+    <string name="dashboard.temperature">Temperature</string>
+    <string name="dashboard.cpu_temp">CPU Temp</string>
+    <string name="dashboard.gpu_temp">GPU Temp</string>
+    <string name="dashboard.storage_primary">Internal Storage</string>
+    <string name="dashboard.storage_used">Used</string>
+    <string name="dashboard.storage_free">Free</string>
+    <string name="dashboard.storage_total">Total</string>
+    <string name="dashboard.storage_filesystem">File System</string>
+    <string name="dashboard.cores_label">Cores</string>
 
     <!-- Cleanup -->
     <string name="cleanup.title">System Cleanup</string>

@@ -37,11 +37,21 @@
     <string name="dashboard.ram_available">Доступно</string>
     <string name="dashboard.disks">Дисковые накопители</string>
     <string name="dashboard.system_info">Информация о системе</string>
+    <string name="dashboard.system_overview">Обзор системы</string>
     <string name="dashboard.os">Операционная система</string>
     <string name="dashboard.kernel">Ядро</string>
     <string name="dashboard.arch">Архитектура</string>
     <string name="dashboard.hostname">Имя хоста</string>
     <string name="dashboard.uptime">Время работы</string>
+    <string name="dashboard.temperature">Температура</string>
+    <string name="dashboard.cpu_temp">Температура CPU</string>
+    <string name="dashboard.gpu_temp">Температура GPU</string>
+    <string name="dashboard.storage_primary">Встроенный накопитель</string>
+    <string name="dashboard.storage_used">Занято</string>
+    <string name="dashboard.storage_free">Свободно</string>
+    <string name="dashboard.storage_total">Всего</string>
+    <string name="dashboard.storage_filesystem">Файловая система</string>
+    <string name="dashboard.cores_label">ядер</string>
 
     <!-- Cleanup -->
     <string name="cleanup.title">Очистка системы</string>

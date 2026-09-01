@@ -46,8 +46,14 @@ export component AppWindow inherits Window {
     in-out property <string> ram_total_str: "0 GB";
     in-out property <string> ram_arc_path: "";
 
+    // Temperature Metrics
+    in-out property <string> cpu_temp_str: "0";
+    in-out property <float> cpu_temp_val: 0.0;
+    in-out property <string> gpu_temp_str: "0";
+    in-out property <float> gpu_temp_val: 0.0;
+
     // Storage
-    in-out property <string> disk_name: "Встроенный накопитель";
+    in-out property <string> disk_name: "";
     in-out property <string> disk_fs: "btrfs";
     in-out property <string> disk_used_str: "0 GB";
     in-out property <string> disk_total_str: "0 GB";
@@ -137,6 +143,11 @@ export component AppWindow inherits Window {
                     ram_available_str: root.ram_available_str;
                     ram_total_str: root.ram_total_str;
                     ram_arc_path: root.ram_arc_path;
+
+                    cpu_temp_str: root.cpu_temp_str;
+                    cpu_temp_val: root.cpu_temp_val;
+                    gpu_temp_str: root.gpu_temp_str;
+                    gpu_temp_val: root.gpu_temp_val;
 
                     disk_name: root.disk_name;
                     disk_fs: root.disk_fs;

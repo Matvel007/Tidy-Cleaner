@@ -52,11 +52,21 @@ fn update_ui_strings(window: &AppWindow, state: &AppState) {
     i18n.set_dashboard_ram_available(loc.t("dashboard.ram_available").into());
     i18n.set_dashboard_disks(loc.t("dashboard.disks").into());
     i18n.set_dashboard_system_info(loc.t("dashboard.system_info").into());
+    i18n.set_dashboard_system_overview(loc.t("dashboard.system_overview").into());
     i18n.set_dashboard_os(loc.t("dashboard.os").into());
     i18n.set_dashboard_kernel(loc.t("dashboard.kernel").into());
     i18n.set_dashboard_arch(loc.t("dashboard.arch").into());
     i18n.set_dashboard_hostname(loc.t("dashboard.hostname").into());
     i18n.set_dashboard_uptime(loc.t("dashboard.uptime").into());
+    i18n.set_dashboard_temperature(loc.t("dashboard.temperature").into());
+    i18n.set_dashboard_cpu_temp(loc.t("dashboard.cpu_temp").into());
+    i18n.set_dashboard_gpu_temp(loc.t("dashboard.gpu_temp").into());
+    i18n.set_dashboard_storage_primary(loc.t("dashboard.storage_primary").into());
+    i18n.set_dashboard_storage_used(loc.t("dashboard.storage_used").into());
+    i18n.set_dashboard_storage_free(loc.t("dashboard.storage_free").into());
+    i18n.set_dashboard_storage_total(loc.t("dashboard.storage_total").into());
+    i18n.set_dashboard_storage_filesystem(loc.t("dashboard.storage_filesystem").into());
+    i18n.set_dashboard_cores_label(loc.t("dashboard.cores_label").into());
 
     i18n.set_cleanup_title(loc.t("cleanup.title").into());
     i18n.set_cleanup_subtitle(loc.t("cleanup.subtitle").into());
@@ -255,7 +265,13 @@ fn apply_snapshot_to_ui(window: &AppWindow, snapshot: &system::SystemSnapshot) {
     let ram_arc = system::generate_arc_svg_path(60.0, 60.0, 48.0, snapshot.memory.usage_percent);
     window.set_ram_arc_path(ram_arc.into());
 
-    // 4. Storage (Primary Drive)
+    // 4. Temperature
+    window.set_cpu_temp_str(format!("{:.0}", snapshot.temperature.cpu_temp_c).into());
+    window.set_cpu_temp_val(snapshot.temperature.cpu_temp_c);
+    window.set_gpu_temp_str(format!("{:.0}", snapshot.temperature.gpu_temp_c).into());
+    window.set_gpu_temp_val(snapshot.temperature.gpu_temp_c);
+
+    // 5. Storage (Primary Drive)
     if let Some(d) = snapshot.disks.first() {
         window.set_disk_name(d.name.clone().into());
         window.set_disk_fs(d.file_system.clone().into());
@@ -266,7 +282,7 @@ fn apply_snapshot_to_ui(window: &AppWindow, snapshot: &system::SystemSnapshot) {
         window.set_disk_percent_str(format!("{:.0}%", d.usage_ratio * 100.0).into());
     }
 
-    // 5. System Overview
+    // 6. System Overview
     window.set_os_name(snapshot.overview.os_name.clone().into());
     window.set_kernel_version(snapshot.overview.kernel_version.clone().into());
     window.set_hostname(snapshot.overview.hostname.clone().into());

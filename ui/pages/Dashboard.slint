@@ -3,6 +3,7 @@ import { Typography } from "../theme/Typography.slint";
 import { I18n } from "../I18n.slint";
 import { Card } from "../components/Card.slint";
 import { CircularGauge } from "../components/CircularGauge.slint";
+import { TemperatureCard } from "../components/TemperatureCard.slint";
 import { IconDisk } from "../components/Icons.slint";
 
 export component DashboardPage inherits VerticalLayout {
@@ -26,8 +27,14 @@ export component DashboardPage inherits VerticalLayout {
     in property <string> ram_total_str: "0 GB";
     in property <string> ram_arc_path: "";
 
+    // Temperature Metrics
+    in property <string> cpu_temp_str: "0";
+    in property <float> cpu_temp_val: 0.0;
+    in property <string> gpu_temp_str: "0";
+    in property <float> gpu_temp_val: 0.0;
+
     // Storage (Primary Drive)
-    in property <string> disk_name: "Встроенный накопитель";
+    in property <string> disk_name: I18n.dashboard_storage_primary;
     in property <string> disk_fs: "btrfs";
     in property <string> disk_used_str: "0 GB";
     in property <string> disk_total_str: "0 GB";
@@ -45,7 +52,7 @@ export component DashboardPage inherits VerticalLayout {
     spacing: 14px;
     alignment: start;
 
-    // TOP ROW: 3 Circular Gauges (CPU, GPU, RAM)
+    // TOP ROW: 4 Cards (CPU, GPU, RAM Gauges + Temperature Card)
     HorizontalLayout {
         spacing: 12px;
         height: 204px;
@@ -56,7 +63,7 @@ export component DashboardPage inherits VerticalLayout {
             title: "CPU";
             value_str: root.cpu_usage_str;
             subtext_top: root.cpu_freq_str;
-            subtext_bottom: root.cpu_brand + " • " + root.cpu_cores_str + " Cores";
+            subtext_bottom: root.cpu_brand + " • " + root.cpu_cores_str + " " + I18n.dashboard_cores_label;
             ring_color: Theme.cpu_chart;
             arc_path: root.cpu_arc_path;
         }
@@ -78,9 +85,18 @@ export component DashboardPage inherits VerticalLayout {
             title: "RAM";
             value_str: root.ram_usage_str;
             subtext_top: root.ram_used_str + " / " + root.ram_total_str;
-            subtext_bottom: "Free: " + root.ram_available_str;
+            subtext_bottom: I18n.common_free + ": " + root.ram_available_str;
             ring_color: Theme.ram_chart;
             arc_path: root.ram_arc_path;
+        }
+
+        // 4. Temperature Card (CPU & GPU)
+        TemperatureCard {
+            horizontal-stretch: 1;
+            cpu_temp_str: root.cpu_temp_str;
+            cpu_temp_val: root.cpu_temp_val;
+            gpu_temp_str: root.gpu_temp_str;
+            gpu_temp_val: root.gpu_temp_val;
         }
     }
 
@@ -113,7 +129,7 @@ export component DashboardPage inherits VerticalLayout {
                         }
 
                         Text {
-                            text: root.disk_name;
+                            text: I18n.dashboard_storage_primary;
                             font-family: Typography.font_family;
                             font-size: Typography.size_base;
                             font-weight: Typography.weight_semibold;
@@ -158,32 +174,32 @@ export component DashboardPage inherits VerticalLayout {
 
                     VerticalLayout {
                         spacing: 2px;
-                        Text { text: "Занято"; font-size: Typography.size_xs; color: Theme.text_muted; }
+                        Text { text: I18n.dashboard_storage_used; font-size: Typography.size_xs; color: Theme.text_muted; }
                         Text { text: root.disk_used_str; font-size: Typography.size_xs; font-weight: Typography.weight_medium; color: Theme.text_primary; }
                     }
 
                     VerticalLayout {
                         spacing: 2px;
-                        Text { text: "Свободно"; font-size: Typography.size_xs; color: Theme.text_muted; }
+                        Text { text: I18n.dashboard_storage_free; font-size: Typography.size_xs; color: Theme.text_muted; }
                         Text { text: root.disk_free_str; font-size: Typography.size_xs; font-weight: Typography.weight_medium; color: Theme.text_primary; }
                     }
 
                     VerticalLayout {
                         spacing: 2px;
-                        Text { text: "Всего"; font-size: Typography.size_xs; color: Theme.text_muted; }
+                        Text { text: I18n.dashboard_storage_total; font-size: Typography.size_xs; color: Theme.text_muted; }
                         Text { text: root.disk_total_str; font-size: Typography.size_xs; font-weight: Typography.weight_medium; color: Theme.text_primary; }
                     }
 
                     VerticalLayout {
                         spacing: 2px;
-                        Text { text: "Файловая система"; font-size: Typography.size_xs; color: Theme.text_muted; }
+                        Text { text: I18n.dashboard_storage_filesystem; font-size: Typography.size_xs; color: Theme.text_muted; }
                         Text { text: root.disk_fs; font-size: Typography.size_xs; font-weight: Typography.weight_medium; color: Theme.text_secondary; }
                     }
                 }
             }
         }
 
-        // Compact Terminal-Style System Info Card (Disk line removed)
+        // Compact Terminal-Style System Info Card
         Card {
             horizontal-stretch: 1;
             padding_horizontal: 18px;
@@ -192,6 +208,18 @@ export component DashboardPage inherits VerticalLayout {
             VerticalLayout {
                 spacing: 6px;
                 alignment: space-between;
+
+                // Header Title
+                HorizontalLayout {
+                    alignment: space-between;
+                    Text {
+                        text: I18n.dashboard_system_overview;
+                        font-family: Typography.font_family;
+                        font-size: Typography.size_xs;
+                        font-weight: Typography.weight_bold;
+                        color: Theme.text_secondary;
+                    }
+                }
 
                 // Line 1: OS
                 HorizontalLayout {

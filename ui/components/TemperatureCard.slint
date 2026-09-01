@@ -1,0 +1,136 @@
+import { Theme } from "../theme/Palette.slint";
+import { Typography } from "../theme/Typography.slint";
+import { I18n } from "../I18n.slint";
+import { Card } from "Card.slint";
+
+export component TemperatureCard inherits Card {
+    in property <string> cpu_temp_str: "0";
+    in property <float> cpu_temp_val: 0.0;
+    in property <string> gpu_temp_str: "0";
+    in property <float> gpu_temp_val: 0.0;
+
+    padding_horizontal: 16px;
+    padding_vertical: 14px;
+
+    VerticalLayout {
+        spacing: 12px;
+        alignment: space-between;
+
+        // Header Title
+        HorizontalLayout {
+            alignment: space-between;
+
+            Text {
+                text: I18n.dashboard_temperature;
+                font-family: Typography.font_family;
+                font-size: Typography.size_xs;
+                font-weight: Typography.weight_bold;
+                color: Theme.text_secondary;
+            }
+
+            Text {
+                text: "°C";
+                font-family: Typography.font_mono;
+                font-size: Typography.size_xs;
+                color: Theme.text_muted;
+            }
+        }
+
+        // CPU Temperature Meter
+        VerticalLayout {
+            spacing: 6px;
+
+            HorizontalLayout {
+                alignment: space-between;
+                Text {
+                    text: "CPU";
+                    font-family: Typography.font_family;
+                    font-size: Typography.size_xs;
+                    font-weight: Typography.weight_semibold;
+                    color: Theme.text_primary;
+                }
+                Text {
+                    text: root.cpu_temp_str + " °C";
+                    font-family: Typography.font_mono;
+                    font-size: Typography.size_xs;
+                    font-weight: Typography.weight_bold;
+                    color: root.cpu_temp_val > 80.0 ? Theme.danger :
+                        root.cpu_temp_val > 65.0 ? Theme.warning : Theme.text_primary;
+                }
+            }
+
+            // CPU Temp Bar (range 20..100)
+            Rectangle {
+                height: 8px;
+                border-radius: 4px;
+                background: Theme.surface_secondary;
+                clip: true;
+
+                Rectangle {
+                    x: 0px;
+                    y: 0px;
+                    width: parent.width * Math.min(1.0, Math.max(0.0, (root.cpu_temp_val - 20.0) / 80.0));
+                    height: 100%;
+                    border-radius: 4px;
+                    background: root.cpu_temp_val > 80.0 ? Theme.danger :
+                        root.cpu_temp_val > 65.0 ? Theme.warning : #10b981;
+
+                    animate width { duration: 250ms; easing: ease-out; }
+                }
+            }
+        }
+
+        // GPU Temperature Meter
+        VerticalLayout {
+            spacing: 6px;
+
+            HorizontalLayout {
+                alignment: space-between;
+                Text {
+                    text: "GPU";
+                    font-family: Typography.font_family;
+                    font-size: Typography.size_xs;
+                    font-weight: Typography.weight_semibold;
+                    color: Theme.text_primary;
+                }
+                Text {
+                    text: root.gpu_temp_str + " °C";
+                    font-family: Typography.font_mono;
+                    font-size: Typography.size_xs;
+                    font-weight: Typography.weight_bold;
+                    color: root.gpu_temp_val > 80.0 ? Theme.danger :
+                        root.gpu_temp_val > 65.0 ? Theme.warning : Theme.text_primary;
+                }
+            }
+
+            // GPU Temp Bar (range 20..100)
+            Rectangle {
+                height: 8px;
+                border-radius: 4px;
+                background: Theme.surface_secondary;
+                clip: true;
+
+                Rectangle {
+                    x: 0px;
+                    y: 0px;
+                    width: parent.width * Math.min(1.0, Math.max(0.0, (root.gpu_temp_val - 20.0) / 80.0));
+                    height: 100%;
+                    border-radius: 4px;
+                    background: root.gpu_temp_val > 80.0 ? Theme.danger :
+                        root.gpu_temp_val > 65.0 ? Theme.warning : #10b981;
+
+                    animate width { duration: 250ms; easing: ease-out; }
+                }
+            }
+        }
+
+        // Subtext
+        Text {
+            text: root.cpu_temp_val > 80.0 || root.gpu_temp_val > 80.0 ? "High Thermal Load" : "Optimal Conditions";
+            font-family: Typography.font_family;
+            font-size: Typography.size_xs;
+            color: Theme.text_muted;
+            horizontal-alignment: center;
+        }
+    }
+}

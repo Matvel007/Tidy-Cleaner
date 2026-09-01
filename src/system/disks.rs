@@ -36,20 +36,10 @@ impl DiskCollector {
             }
             seen_keys.insert(dedup_key);
 
-            let display_name =
-                if mount_point == "/" || mount_point == "/root" || mount_point == "/home" {
-                    "Встроенный накопитель".to_string()
-                } else {
-                    let name = disk.name().to_string_lossy().to_string();
-                    if name.is_empty() {
-                        "Дополнительный накопитель".to_string()
-                    } else {
-                        name
-                    }
-                };
+            let name = disk.name().to_string_lossy().to_string();
 
             results.push(DiskInfo {
-                name: display_name,
+                name,
                 mount_point,
                 file_system,
                 total_bytes,
@@ -61,7 +51,7 @@ impl DiskCollector {
 
         if results.is_empty() {
             results.push(DiskInfo {
-                name: "Встроенный накопитель".to_string(),
+                name: String::new(),
                 mount_point: "/".to_string(),
                 file_system: "btrfs".to_string(),
                 total_bytes: 1024 * 1024 * 1024 * 512,

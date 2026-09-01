@@ -1,4 +1,5 @@
 pub use super::gpu::GpuMetrics;
+pub use super::temperature::TemperatureMetrics;
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -70,6 +71,7 @@ pub struct SystemSnapshot {
     pub gpu: GpuMetrics,
     pub memory: MemoryMetrics,
     pub disks: Vec<DiskInfo>,
+    pub temperature: TemperatureMetrics,
     pub overview: SystemOverview,
 }
 

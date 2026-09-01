@@ -5,6 +5,7 @@ pub mod memory;
 pub mod models;
 pub mod os_info;
 pub mod service;
+pub mod temperature;
 
 #[allow(unused_imports)]
 pub use cpu::CpuCollector;
@@ -17,8 +18,10 @@ pub use memory::MemoryCollector;
 #[allow(unused_imports)]
 pub use models::{
     generate_arc_svg_path, CpuMetrics, DiskInfo, GpuMetrics, MemoryMetrics, SystemOverview,
-    SystemSnapshot,
+    SystemSnapshot, TemperatureMetrics,
 };
 pub use os_info::OsInfoCollector;
 #[allow(unused_imports)]
 pub use service::{SharedSystemMonitor, SystemMonitorService};
+#[allow(unused_imports)]
+pub use temperature::TemperatureCollector;
