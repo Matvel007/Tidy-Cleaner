@@ -3,3 +3,5 @@
 *.log
 .DS_Store
 *.md
+!README.md
+!README_ru.md
