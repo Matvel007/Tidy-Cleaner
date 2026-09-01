@@ -108,14 +108,14 @@ export component DashboardPage inherits VerticalLayout {
                 }
             }
 
-            // BOTTOM ROW: Storage Card (Up to 2 Disks)
+            // BOTTOM ROW: Storage Card (Increased Height: 184px)
             Card {
-                height: 170px;
+                height: 184px;
                 padding_horizontal: 18px;
                 padding_vertical: 14px;
 
                 VerticalLayout {
-                    spacing: root.has_disk2 ? 8px : 12px;
+                    spacing: root.has_disk2 ? 10px : 14px;
                     alignment: space-between;
 
                     // Disk 1 Section
@@ -290,7 +290,6 @@ export component DashboardPage inherits VerticalLayout {
         }
 
         // RIGHT SECTION: Temperature (Top) and System Overview (Bottom)
-        // Expanded width for high-density elegance!
         VerticalLayout {
             horizontal-stretch: 1.55;
             spacing: 12px;
@@ -304,14 +303,14 @@ export component DashboardPage inherits VerticalLayout {
                 gpu_temp_val: root.gpu_temp_val;
             }
 
-            // Bottom: System Overview Card (exact same width as Temperature!)
+            // Bottom: System Overview Card (Increased Height: 184px)
             Card {
-                height: 170px;
+                height: 184px;
                 padding_horizontal: 18px;
                 padding_vertical: 14px;
 
                 VerticalLayout {
-                    spacing: 8px;
+                    spacing: 10px;
                     alignment: space-between;
 
                     // Header Title
