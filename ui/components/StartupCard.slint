@@ -1,0 +1,221 @@
+import { Theme } from "../theme/Palette.slint";
+import { Typography } from "../theme/Typography.slint";
+import { I18n } from "../I18n.slint";
+import { IconStartup, IconTrash } from "Icons.slint";
+import { ToggleSwitch } from "ToggleSwitch.slint";
+
+export component StartupCard inherits Rectangle {
+    in property <string> item_id: "";
+    in property <string> name: "";
+    in property <string> comment: "";
+    in property <string> exec: "";
+    in property <string> source_name: "User";
+    in property <string> source_code: "user";
+    in property <bool> has_icon_image: false;
+    in property <image> icon_image;
+    in property <bool> enabled: true;
+    in property <bool> is_terminal: false;
+
+    callback toggled(string, bool);
+    callback remove_clicked(string);
+
+    height: 56px;
+    border-radius: Theme.radius_md;
+    background: card_ta.has-hover ? Theme.surface_hover : Theme.surface;
+    border-width: 1px;
+    border-color: Theme.border;
+
+    animate background { duration: 150ms; easing: ease-out; }
+
+    card_ta := TouchArea {}
+
+    HorizontalLayout {
+        padding-left: 14px;
+        padding-right: 14px;
+        spacing: 12px;
+        alignment: space-between;
+
+        // Left Section: Real App Icon + Details
+        HorizontalLayout {
+            spacing: 12px;
+            alignment: start;
+
+            // Application Icon Container
+            Rectangle {
+                y: (parent.height - self.height) / 2;
+                width: 36px;
+                height: 36px;
+                border-radius: Theme.radius_md;
+                background: Theme.surface_secondary;
+                clip: true;
+
+                if root.has_icon_image: Image {
+                    x: (parent.width - self.width) / 2;
+                    y: (parent.height - self.height) / 2;
+                    width: 26px;
+                    height: 26px;
+                    source: root.icon_image;
+                    image-fit: contain;
+                }
+
+                if !root.has_icon_image: IconStartup {
+                    x: (parent.width - self.width) / 2;
+                    y: (parent.height - self.height) / 2;
+                    icon_size: 18px;
+                    icon_color: root.enabled ? Theme.accent : Theme.text_muted;
+                }
+            }
+
+            // Title + Source Badge + Monospace Command
+            VerticalLayout {
+                alignment: center;
+                spacing: 3px;
+
+                HorizontalLayout {
+                    spacing: 8px;
+                    alignment: start;
+
+                    Text {
+                        text: root.name;
+                        font-family: Typography.font_family;
+                        font-size: Typography.size_xs;
+                        font-weight: Typography.weight_bold;
+                        color: root.enabled ? Theme.text_primary : Theme.text_muted;
+                        vertical-alignment: center;
+                    }
+
+                    // Source Badge (User / System)
+                    Rectangle {
+                        height: 16px;
+                        border-radius: 3px;
+                        background: root.source_code == "user" ? #064e3b : #1e3a8a;
+
+                        HorizontalLayout {
+                            padding-left: 6px;
+                            padding-right: 6px;
+                            Text {
+                                text: root.source_name;
+                                font-family: Typography.font_mono;
+                                font-size: 9px;
+                                font-weight: Typography.weight_bold;
+                                color: root.source_code == "user" ? #6ee7b7 : #93c5fd;
+                                vertical-alignment: center;
+                            }
+                        }
+                    }
+
+                    // Status Badge (Enabled / Disabled)
+                    Rectangle {
+                        height: 16px;
+                        border-radius: 3px;
+                        background: root.enabled ? #14532d : #3f3f46;
+
+                        HorizontalLayout {
+                            padding-left: 6px;
+                            padding-right: 6px;
+                            Text {
+                                text: root.enabled ? I18n.startup_enabled : I18n.startup_disabled;
+                                font-family: Typography.font_mono;
+                                font-size: 9px;
+                                font-weight: Typography.weight_bold;
+                                color: root.enabled ? #86efac : #a1a1aa;
+                                vertical-alignment: center;
+                            }
+                        }
+                    }
+                }
+
+                Text {
+                    text: root.exec;
+                    font-family: Typography.font_mono;
+                    font-size: 10px;
+                    color: Theme.text_muted;
+                    overflow: elide;
+                    max-width: 460px;
+                }
+            }
+        }
+
+        // Right Section: Tooltip Badge + Toggle Switch + Delete Button
+        HorizontalLayout {
+            spacing: 8px;
+            alignment: end;
+
+            // Live Tooltip Badge (never clipped)
+            Rectangle {
+                y: (parent.height - self.height) / 2;
+                height: 22px;
+                border-radius: Theme.radius_sm;
+                background: #18181b;
+                border-width: 1px;
+                border-color: #3f3f46;
+                opacity: (sw_ta.has-hover || un_ta.has-hover) ? 1.0 : 0.0;
+                visible: self.opacity > 0.0;
+
+                animate opacity { duration: 120ms; easing: ease-out; }
+
+                HorizontalLayout {
+                    padding-left: 8px;
+                    padding-right: 8px;
+                    alignment: center;
+
+                    Text {
+                        text: sw_ta.has-hover ? I18n.tooltip_toggle_startup :
+                            un_ta.has-hover ? I18n.tooltip_remove_startup : "";
+                        font-family: Typography.font_family;
+                        font-size: 10px;
+                        font-weight: Typography.weight_medium;
+                        color: #f4f4f5;
+                        vertical-alignment: center;
+                    }
+                }
+            }
+
+            // Toggle Switch Container with hover tracking
+            Rectangle {
+                y: (parent.height - self.height) / 2;
+                width: 38px;
+                height: 20px;
+
+                ToggleSwitch {
+                    checked: root.enabled;
+                    toggled(val) => {
+                        root.toggled(root.item_id, val);
+                    }
+                }
+
+                sw_ta := TouchArea {
+                    mouse-cursor: pointer;
+                    clicked => {
+                        root.toggled(root.item_id, !root.enabled);
+                    }
+                }
+            }
+
+            // Remove / Delete Button
+            Rectangle {
+                y: (parent.height - self.height) / 2;
+                width: 32px;
+                height: 32px;
+                border-radius: Theme.radius_md;
+                background: un_ta.has-hover ? #7f1d1d : Colors.transparent;
+
+                IconTrash {
+                    x: (parent.width - self.width) / 2;
+                    y: (parent.height - self.height) / 2;
+                    icon_size: 15px;
+                    icon_color: un_ta.has-hover ? #f87171 : Theme.text_muted;
+                }
+
+                un_ta := TouchArea {
+                    mouse-cursor: pointer;
+                    pointer-event(event) => {
+                        if event.kind == PointerEventKind.down {
+                            root.remove_clicked(root.item_id);
+                        }
+                    }
+                }
+            }
+        }
+    }
+}

@@ -1,0 +1,190 @@
+import { Theme } from "../theme/Palette.slint";
+import { Typography } from "../theme/Typography.slint";
+import { I18n } from "../I18n.slint";
+import { Modal } from "Modal.slint";
+import { IconCheck, IconFolder } from "Icons.slint";
+
+export component AddStartupModal inherits Modal {
+    in-out property <string> name_input: "";
+    in-out property <string> exec_input: "";
+    in-out property <string> comment_input: "";
+    in-out property <bool> terminal_checked: false;
+
+    callback saved(string, string, string, bool);
+    callback browse_clicked();
+
+    title: I18n.startup_add_modal_title;
+    confirm_text: I18n.startup_save_btn;
+    cancel_text: I18n.common_cancel;
+
+    confirmed => {
+        if root.name_input != "" && root.exec_input != "" {
+            root.saved(root.name_input, root.exec_input, root.comment_input, root.terminal_checked);
+            root.name_input = "";
+            root.exec_input = "";
+            root.comment_input = "";
+            root.terminal_checked = false;
+        }
+    }
+
+    VerticalLayout {
+        spacing: 10px;
+        vertical-stretch: 0;
+
+        // Field: Name
+        VerticalLayout {
+            spacing: 4px;
+            Text {
+                text: I18n.startup_field_name;
+                font-family: Typography.font_family;
+                font-size: 10px;
+                font-weight: Typography.weight_medium;
+                color: Theme.text_secondary;
+            }
+            Rectangle {
+                height: 32px;
+                border-radius: Theme.radius_md;
+                background: Theme.surface_secondary;
+                border-width: 1px;
+                border-color: name_le.has-focus ? Theme.accent : Theme.border;
+
+                HorizontalLayout {
+                    padding-left: 10px;
+                    padding-right: 10px;
+                    name_le := TextInput {
+                        text <=> root.name_input;
+                        font-family: Typography.font_family;
+                        font-size: Typography.size_xs;
+                        color: Theme.text_primary;
+                        vertical-alignment: center;
+                    }
+                }
+            }
+        }
+
+        // Field: Command / Exec + Browse Button
+        VerticalLayout {
+            spacing: 4px;
+            Text {
+                text: I18n.startup_field_exec;
+                font-family: Typography.font_family;
+                font-size: 10px;
+                font-weight: Typography.weight_medium;
+                color: Theme.text_secondary;
+            }
+            Rectangle {
+                height: 32px;
+                border-radius: Theme.radius_md;
+                background: Theme.surface_secondary;
+                border-width: 1px;
+                border-color: exec_le.has-focus ? Theme.accent : Theme.border;
+
+                HorizontalLayout {
+                    padding-left: 10px;
+                    padding-right: 6px;
+                    spacing: 6px;
+
+                    exec_le := TextInput {
+                        text <=> root.exec_input;
+                        font-family: Typography.font_mono;
+                        font-size: Typography.size_xs;
+                        color: Theme.text_primary;
+                        vertical-alignment: center;
+                    }
+
+                    // Browse File/Folder Button
+                    Rectangle {
+                        y: (parent.height - self.height) / 2;
+                        width: 24px;
+                        height: 24px;
+                        border-radius: Theme.radius_sm;
+                        background: browse_ta.has-hover ? Theme.surface_hover : Colors.transparent;
+
+                        IconFolder {
+                            x: (parent.width - self.width) / 2;
+                            y: (parent.height - self.height) / 2;
+                            icon_size: 13px;
+                            icon_color: browse_ta.has-hover ? Theme.accent : Theme.text_secondary;
+                        }
+
+                        browse_ta := TouchArea {
+                            mouse-cursor: pointer;
+                            clicked => {
+                                root.browse_clicked();
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        // Field: Comment
+        VerticalLayout {
+            spacing: 4px;
+            Text {
+                text: I18n.startup_field_comment;
+                font-family: Typography.font_family;
+                font-size: 10px;
+                font-weight: Typography.weight_medium;
+                color: Theme.text_secondary;
+            }
+            Rectangle {
+                height: 32px;
+                border-radius: Theme.radius_md;
+                background: Theme.surface_secondary;
+                border-width: 1px;
+                border-color: comment_le.has-focus ? Theme.accent : Theme.border;
+
+                HorizontalLayout {
+                    padding-left: 10px;
+                    padding-right: 10px;
+                    comment_le := TextInput {
+                        text <=> root.comment_input;
+                        font-family: Typography.font_family;
+                        font-size: Typography.size_xs;
+                        color: Theme.text_primary;
+                        vertical-alignment: center;
+                    }
+                }
+            }
+        }
+
+        // Checkbox: Run in Terminal
+        HorizontalLayout {
+            spacing: 8px;
+            alignment: start;
+
+            Rectangle {
+                y: (parent.height - self.height) / 2;
+                width: 16px;
+                height: 16px;
+                border-radius: 4px;
+                background: root.terminal_checked ? Theme.accent : Theme.surface_secondary;
+                border-width: 1px;
+                border-color: root.terminal_checked ? Theme.accent : Theme.border;
+
+                if root.terminal_checked: IconCheck {
+                    x: (parent.width - self.width) / 2;
+                    y: (parent.height - self.height) / 2;
+                    icon_size: 10px;
+                    icon_color: #ffffff;
+                }
+
+                TouchArea {
+                    mouse-cursor: pointer;
+                    clicked => {
+                        root.terminal_checked = !root.terminal_checked;
+                    }
+                }
+            }
+
+            Text {
+                text: I18n.startup_field_terminal;
+                font-family: Typography.font_family;
+                font-size: Typography.size_xs;
+                color: Theme.text_primary;
+                vertical-alignment: center;
+            }
+        }
+    }
+}

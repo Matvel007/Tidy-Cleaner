@@ -1,0 +1,294 @@
+import { Theme } from "../theme/Palette.slint";
+import { Typography } from "../theme/Typography.slint";
+import { I18n } from "../I18n.slint";
+import { IconApplications, IconCheck, IconTrash, IconExternalLink, IconShortcut } from "Icons.slint";
+
+export component ApplicationCard inherits Rectangle {
+    in property <string> app_id: "";
+    in property <string> name: "";
+    in property <string> version: "";
+    in property <string> source_name: "Pacman";
+    in property <string> source_code: "pacman";
+    in property <string> description: "";
+    in property <bool> has_icon_image: false;
+    in property <image> icon_image;
+    in property <bool> is_desktop_app: false;
+    in property <bool> is_selected: false;
+    in property <bool> show_shortcut_btn: true;
+
+    callback toggled(string);
+    callback open_clicked(string);
+    callback create_shortcut_clicked(string);
+    callback uninstall_clicked(string);
+
+    height: 56px;
+    border-radius: Theme.radius_md;
+    background: card_ta.has-hover ? Theme.surface_hover : Theme.surface;
+    border-width: 1px;
+    border-color: root.is_selected ? Theme.accent : Theme.border;
+
+    animate background { duration: 150ms; easing: ease-out; }
+    animate border-color { duration: 150ms; easing: ease-out; }
+
+    card_ta := TouchArea {
+        pointer-event(event) => {
+            if event.kind == PointerEventKind.down {
+                root.toggled(root.app_id);
+            }
+        }
+    }
+
+    HorizontalLayout {
+        padding-left: 14px;
+        padding-right: 14px;
+        spacing: 12px;
+        alignment: space-between;
+
+        // Left Section: Checkbox + Real App Icon + App Details
+        HorizontalLayout {
+            spacing: 12px;
+            alignment: start;
+
+            // Custom Checkbox
+            Rectangle {
+                y: (parent.height - self.height) / 2;
+                width: 18px;
+                height: 18px;
+                border-radius: 4px;
+                background: root.is_selected ? Theme.accent : Theme.surface_secondary;
+                border-width: 1px;
+                border-color: root.is_selected ? Theme.accent : Theme.border;
+
+                animate background { duration: 120ms; easing: ease-out; }
+
+                if root.is_selected: IconCheck {
+                    x: (parent.width - self.width) / 2;
+                    y: (parent.height - self.height) / 2;
+                    icon_size: 11px;
+                    icon_color: #ffffff;
+                }
+            }
+
+            // Real Application Icon Container
+            Rectangle {
+                y: (parent.height - self.height) / 2;
+                width: 36px;
+                height: 36px;
+                border-radius: Theme.radius_md;
+                background: Theme.surface_secondary;
+                clip: true;
+
+                if root.has_icon_image: Image {
+                    x: (parent.width - self.width) / 2;
+                    y: (parent.height - self.height) / 2;
+                    width: 26px;
+                    height: 26px;
+                    source: root.icon_image;
+                    image-fit: contain;
+                }
+
+                if !root.has_icon_image: IconApplications {
+                    x: (parent.width - self.width) / 2;
+                    y: (parent.height - self.height) / 2;
+                    icon_size: 18px;
+                    icon_color: Theme.text_primary;
+                }
+            }
+
+            // App Name + Badges + Description
+            VerticalLayout {
+                alignment: center;
+                spacing: 3px;
+
+                HorizontalLayout {
+                    spacing: 8px;
+                    alignment: start;
+
+                    Text {
+                        text: root.name;
+                        font-family: Typography.font_family;
+                        font-size: Typography.size_xs;
+                        font-weight: Typography.weight_bold;
+                        color: Theme.text_primary;
+                        vertical-alignment: center;
+                    }
+
+                    // Source Badge (Pacman / AUR / Flatpak / APT / RPM / Snap)
+                    Rectangle {
+                        height: 16px;
+                        border-radius: 3px;
+                        background: root.source_code == "pacman" ? #1e3a8a :
+                            root.source_code == "aur" ? #4c1d95 :
+                            root.source_code == "flatpak" ? #064e3b :
+                            root.source_code == "dpkg" ? #831843 :
+                            root.source_code == "rpm" ? #1e40af :
+                            root.source_code == "snap" ? #7c2d12 : #374151;
+
+                        HorizontalLayout {
+                            padding-left: 6px;
+                            padding-right: 6px;
+                            Text {
+                                text: root.source_name;
+                                font-family: Typography.font_mono;
+                                font-size: 9px;
+                                font-weight: Typography.weight_bold;
+                                color: root.source_code == "pacman" ? #93c5fd :
+                                    root.source_code == "aur" ? #c4b5fd :
+                                    root.source_code == "flatpak" ? #6ee7b7 :
+                                    root.source_code == "dpkg" ? #f472b6 :
+                                    root.source_code == "rpm" ? #93c5fd :
+                                    root.source_code == "snap" ? #fdba74 : #d1d5db;
+                                vertical-alignment: center;
+                            }
+                        }
+                    }
+
+                    // Version Badge
+                    if root.version != "": Rectangle {
+                        height: 16px;
+                        border-radius: 3px;
+                        background: Theme.surface_secondary;
+                        border-width: 1px;
+                        border-color: Theme.border;
+
+                        HorizontalLayout {
+                            padding-left: 6px;
+                            padding-right: 6px;
+                            Text {
+                                text: root.version;
+                                font-family: Typography.font_mono;
+                                font-size: 9px;
+                                color: Theme.text_secondary;
+                                vertical-alignment: center;
+                            }
+                        }
+                    }
+                }
+
+                if root.description != "": Text {
+                    text: root.description;
+                    font-family: Typography.font_family;
+                    font-size: 10px;
+                    color: Theme.text_muted;
+                    overflow: elide;
+                    max-width: 440px;
+                }
+            }
+        }
+
+        // Right Section: Tooltip Badge + Shortcut, Launch & Uninstall Action Buttons
+        HorizontalLayout {
+            spacing: 6px;
+            alignment: end;
+
+            // Live Tooltip Badge (never clipped by ScrollView or top bar)
+            Rectangle {
+                y: (parent.height - self.height) / 2;
+                height: 22px;
+                border-radius: Theme.radius_sm;
+                background: #18181b;
+                border-width: 1px;
+                border-color: #3f3f46;
+                opacity: ((root.show_shortcut_btn && sc_ta.has-hover) || open_ta.has-hover || un_ta.has-hover) ? 1.0 : 0.0;
+                visible: self.opacity > 0.0;
+
+                animate opacity { duration: 120ms; easing: ease-out; }
+
+                HorizontalLayout {
+                    padding-left: 8px;
+                    padding-right: 8px;
+                    alignment: center;
+
+                    Text {
+                        text: (root.show_shortcut_btn && sc_ta.has-hover) ? I18n.tooltip_create_shortcut :
+                            open_ta.has-hover ? I18n.tooltip_open_app :
+                            un_ta.has-hover ? I18n.tooltip_uninstall_app : "";
+                        font-family: Typography.font_family;
+                        font-size: 10px;
+                        font-weight: Typography.weight_medium;
+                        color: #f4f4f5;
+                        vertical-alignment: center;
+                    }
+                }
+            }
+
+            // Create Desktop Shortcut Button (KDE only)
+            Rectangle {
+                visible: root.show_shortcut_btn;
+                y: (parent.height - self.height) / 2;
+                width: root.show_shortcut_btn ? 32px : 0px;
+                height: 32px;
+                border-radius: Theme.radius_md;
+                background: sc_ta.has-hover ? Theme.surface_secondary : Colors.transparent;
+
+                IconShortcut {
+                    visible: root.show_shortcut_btn;
+                    x: (parent.width - self.width) / 2;
+                    y: (parent.height - self.height) / 2;
+                    icon_size: 15px;
+                    icon_color: sc_ta.has-hover ? Theme.text_primary : Theme.text_secondary;
+                }
+
+                sc_ta := TouchArea {
+                    enabled: root.show_shortcut_btn;
+                    mouse-cursor: pointer;
+                    pointer-event(event) => {
+                        if event.kind == PointerEventKind.down {
+                            root.create_shortcut_clicked(root.app_id);
+                        }
+                    }
+                }
+            }
+
+            // Open / Launch Application Button
+            Rectangle {
+                y: (parent.height - self.height) / 2;
+                width: 32px;
+                height: 32px;
+                border-radius: Theme.radius_md;
+                background: open_ta.has-hover ? Theme.surface_secondary : Colors.transparent;
+
+                IconExternalLink {
+                    x: (parent.width - self.width) / 2;
+                    y: (parent.height - self.height) / 2;
+                    icon_size: 15px;
+                    icon_color: open_ta.has-hover ? Theme.text_primary : Theme.text_secondary;
+                }
+
+                open_ta := TouchArea {
+                    mouse-cursor: pointer;
+                    pointer-event(event) => {
+                        if event.kind == PointerEventKind.down {
+                            root.open_clicked(root.app_id);
+                        }
+                    }
+                }
+            }
+
+            // Uninstall / Delete Application Button
+            Rectangle {
+                y: (parent.height - self.height) / 2;
+                width: 32px;
+                height: 32px;
+                border-radius: Theme.radius_md;
+                background: un_ta.has-hover ? #7f1d1d : Colors.transparent;
+
+                IconTrash {
+                    x: (parent.width - self.width) / 2;
+                    y: (parent.height - self.height) / 2;
+                    icon_size: 15px;
+                    icon_color: un_ta.has-hover ? #f87171 : Theme.text_muted;
+                }
+
+                un_ta := TouchArea {
+                    mouse-cursor: pointer;
+                    pointer-event(event) => {
+                        if event.kind == PointerEventKind.down {
+                            root.uninstall_clicked(root.app_id);
+                        }
+                    }
+                }
+            }
+        }
+    }
+}

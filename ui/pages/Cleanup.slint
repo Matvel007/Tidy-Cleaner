@@ -3,78 +3,357 @@ import { Typography } from "../theme/Typography.slint";
 import { I18n } from "../I18n.slint";
 import { Button } from "../components/Button.slint";
 import { Card } from "../components/Card.slint";
-import { IconCleanup } from "../components/Icons.slint";
+import { CleanupItemRow } from "../components/CleanupItem.slint";
+import { Modal } from "../components/Modal.slint";
+import { IconCleanup, IconCheck } from "../components/Icons.slint";
+import { ScrollView } from "std-widgets.slint";
 
-export component CleanupPage inherits VerticalLayout {
+export struct CleanupItemData {
+    id: string,
+    name: string,
+    path_str: string,
+    size_str: string,
+    risk_level_code: string,
+    risk_level_text: string,
+    is_selected: bool,
+}
+
+export component CleanupPage inherits Rectangle {
     in property <bool> is_scanning: false;
-    
-    callback start_fast_scan();
-    callback start_full_scan();
+    in property <bool> is_cleaning: false;
+    in property <float> progress_percent: 0.0;
+    in property <string> scan_status_text: "";
+    in property <string> total_found_size_str: "0 B";
+    in property <int> total_found_items_count: 0;
+    in property <string> total_selected_size_str: "0 B";
+    in property <int> total_selected_items_count: 0;
+    in property <[CleanupItemData]> items: [];
+    in property <bool> has_scanned: false;
+    in-out property <bool> show_confirm_modal: false;
+
+    callback start_scan();
+    callback cancel_scan();
+    callback select_all();
+    callback deselect_all();
+    callback toggle_item(string);
+    callback open_item(string);
     callback clean_selected();
 
-    padding: 24px;
-    spacing: 20px;
+    background: Colors.transparent;
 
-    // Header scan actions
-    HorizontalLayout {
-        spacing: 16px;
+    VerticalLayout {
+        padding: 16px;
+        spacing: 12px;
 
-        Button {
-            text: I18n.cleanup_fast_scan;
-            variant: "primary";
-            custom_height: 42px;
-            enabled: !root.is_scanning;
-            clicked => { root.start_fast_scan(); }
+        // TOP TOOLBAR
+        HorizontalLayout {
+            height: 36px;
+            spacing: 8px;
+            alignment: start;
+
+            Button {
+                text: I18n.cleanup_scan_start;
+                variant: "primary";
+                custom_height: 36px;
+                enabled: !root.is_scanning && !root.is_cleaning;
+                clicked => { root.start_scan(); }
+            }
+
+            if root.has_scanned && root.items.length > 0 && !root.is_scanning && !root.is_cleaning: HorizontalLayout {
+                spacing: 8px;
+                alignment: start;
+
+                Button {
+                    text: I18n.cleanup_select_all;
+                    variant: "secondary";
+                    custom_height: 36px;
+                    clicked => { root.select_all(); }
+                }
+
+                Button {
+                    text: I18n.cleanup_deselect_all;
+                    variant: "secondary";
+                    custom_height: 36px;
+                    clicked => { root.deselect_all(); }
+                }
+
+                // Compact Reclaimable Space Pill
+                Rectangle {
+                    height: 36px;
+                    border-radius: Theme.radius_md;
+                    background: Theme.surface;
+                    border-width: 1px;
+                    border-color: Theme.border;
+
+                    HorizontalLayout {
+                        padding_left: 12px;
+                        padding_right: 12px;
+                        spacing: 6px;
+                        alignment: center;
+
+                        Text {
+                            text: I18n.cleanup_reclaimable + ":";
+                            font-family: Typography.font_family;
+                            font-size: Typography.size_xs;
+                            font-weight: Typography.weight_medium;
+                            color: Theme.text_primary;
+                            vertical-alignment: center;
+                        }
+
+                        Text {
+                            text: root.total_found_size_str;
+                            font-family: Typography.font_mono;
+                            font-size: Typography.size_xs;
+                            font-weight: Typography.weight_bold;
+                            color: Theme.text_primary;
+                            vertical-alignment: center;
+                        }
+                    }
+                }
+
+                // Clean Button placed immediately after Reclaimable Space pill
+                Button {
+                    text: I18n.cleanup_clean_selected_btn + ": " + root.total_selected_size_str;
+                    variant: "danger";
+                    custom_height: 36px;
+                    enabled: root.total_selected_items_count > 0;
+                    clicked => { root.show_confirm_modal = true; }
+                }
+            }
         }
 
-        Button {
-            text: I18n.cleanup_full_scan;
-            variant: "secondary";
-            custom_height: 42px;
-            enabled: !root.is_scanning;
-            clicked => { root.start_full_scan(); }
+        // ACTIVE PROGRESS STATE (Scanning or Cleaning)
+        if root.is_scanning || root.is_cleaning: Card {
+            padding_horizontal: 16px;
+            padding_vertical: 10px;
+            height: 56px;
+
+            VerticalLayout {
+                spacing: 6px;
+                alignment: center;
+
+                HorizontalLayout {
+                    alignment: space-between;
+
+                    Text {
+                        text: (root.is_scanning ? I18n.cleanup_scanning : I18n.cleanup_cleaning) + ": " + root.scan_status_text;
+                        font-family: Typography.font_family;
+                        font-size: Typography.size_xs;
+                        font-weight: Typography.weight_semibold;
+                        color: Theme.text_primary;
+                        overflow: elide;
+                        max-width: 650px;
+                    }
+
+                    HorizontalLayout {
+                        spacing: 12px;
+                        alignment: end;
+
+                        Text {
+                            text: Math.round(root.progress_percent) + "%";
+                            font-family: Typography.font_mono;
+                            font-size: Typography.size_xs;
+                            font-weight: Typography.weight_bold;
+                            color: Theme.accent;
+                            vertical-alignment: center;
+                        }
+
+                        Button {
+                            text: I18n.cleanup_cancel;
+                            variant: "secondary";
+                            custom_height: 24px;
+                            clicked => { root.cancel_scan(); }
+                        }
+                    }
+                }
+
+                // Progress Bar
+                Rectangle {
+                    height: 5px;
+                    border-radius: 2.5px;
+                    background: Theme.surface_secondary;
+                    clip: true;
+
+                    Rectangle {
+                        x: 0px;
+                        y: 0px;
+                        width: parent.width * Math.min(1.0, Math.max(0.0, root.progress_percent / 100.0));
+                        height: 100%;
+                        border-radius: 2.5px;
+                        background: Theme.accent;
+
+                        animate width { duration: 150ms; easing: ease-out; }
+                    }
+                }
+            }
         }
 
-        Rectangle { vertical-stretch: 0; }
+        // MAIN CONTENT AREA
+        if !root.has_scanned && !root.is_scanning && !root.is_cleaning: Card {
+            vertical-stretch: 1;
 
-        Button {
-            text: I18n.cleanup_clean_selected;
-            variant: "danger";
-            custom_height: 42px;
-            enabled: false;
-            clicked => { root.clean_selected(); }
+            VerticalLayout {
+                alignment: center;
+                spacing: 14px;
+
+                IconCleanup {
+                    x: (parent.width - self.width) / 2;
+                    icon_size: 52px;
+                    icon_color: Theme.text_muted;
+                }
+
+                Text {
+                    text: I18n.cleanup_empty_title;
+                    font-family: Typography.font_family;
+                    font-size: Typography.size_lg;
+                    font-weight: Typography.weight_bold;
+                    color: Theme.text_primary;
+                    horizontal-alignment: center;
+                }
+
+                Text {
+                    text: I18n.cleanup_empty_desc;
+                    font-family: Typography.font_family;
+                    font-size: Typography.size_sm;
+                    color: Theme.text_muted;
+                    horizontal-alignment: center;
+                }
+            }
+        }
+
+        if root.has_scanned && root.items.length == 0 && !root.is_scanning && !root.is_cleaning: Card {
+            vertical-stretch: 1;
+
+            VerticalLayout {
+                alignment: center;
+                spacing: 14px;
+
+                IconCheck {
+                    x: (parent.width - self.width) / 2;
+                    icon_size: 48px;
+                    icon_color: #10b981;
+                }
+
+                Text {
+                    text: I18n.cleanup_nothing_found_title;
+                    font-family: Typography.font_family;
+                    font-size: Typography.size_lg;
+                    font-weight: Typography.weight_bold;
+                    color: Theme.text_primary;
+                    horizontal-alignment: center;
+                }
+
+                Text {
+                    text: I18n.cleanup_nothing_found_desc;
+                    font-family: Typography.font_family;
+                    font-size: Typography.size_sm;
+                    color: Theme.text_muted;
+                    horizontal-alignment: center;
+                }
+            }
+        }
+
+        if root.has_scanned && root.items.length > 0 && !root.is_scanning && !root.is_cleaning: ScrollView {
+            vertical-stretch: 1;
+
+            VerticalLayout {
+                spacing: 6px;
+                padding-right: 6px;
+
+                for item in root.items: CleanupItemRow {
+                    item_id: item.id;
+                    name: item.name;
+                    path_str: item.path_str;
+                    size_str: item.size_str;
+                    risk_level_code: item.risk_level_code;
+                    risk_level_text: item.risk_level_text;
+                    is_selected: item.is_selected;
+                    toggled(id) => { root.toggle_item(id); }
+                    open_clicked(id) => { root.open_item(id); }
+                }
+            }
         }
     }
 
-    // Empty / initial state
-    Card {
-        vertical-stretch: 1;
+    // CONFIRMATION MODAL DIALOG
+    if root.show_confirm_modal: Modal {
+        is_open: root.show_confirm_modal;
+        title: I18n.cleanup_confirm_title;
+        confirm_text: I18n.cleanup_clean_selected_btn;
+        cancel_text: I18n.common_cancel;
+        danger_action: true;
+        cancelled => { root.show_confirm_modal = false; }
+        confirmed => {
+            root.show_confirm_modal = false;
+            root.clean_selected();
+        }
 
         VerticalLayout {
-            alignment: center;
-            spacing: 14px;
-
-            IconCleanup {
-                x: (parent.width - self.width) / 2;
-                icon_size: 48px;
-                icon_color: Theme.text_muted;
-            }
+            spacing: 10px;
+            vertical-stretch: 0;
 
             Text {
-                text: I18n.cleanup_empty_title;
+                text: I18n.cleanup_confirm_desc;
                 font-family: Typography.font_family;
-                font-size: Typography.size_lg;
-                font-weight: Typography.weight_semibold;
-                color: Theme.text_primary;
-                horizontal-alignment: center;
+                font-size: Typography.size_xs;
+                color: Theme.text_secondary;
+                wrap: word-wrap;
             }
 
-            Text {
-                text: I18n.cleanup_empty_desc;
-                font-family: Typography.font_family;
-                font-size: Typography.size_base;
-                color: Theme.text_muted;
-                horizontal-alignment: center;
+            Rectangle {
+                background: Theme.surface_secondary;
+                border-radius: Theme.radius_md;
+                border-width: 1px;
+                border-color: Theme.border;
+                height: 54px;
+                vertical-stretch: 0;
+
+                VerticalLayout {
+                    padding_left: 12px;
+                    padding_right: 12px;
+                    padding_top: 8px;
+                    padding_bottom: 8px;
+                    spacing: 4px;
+                    alignment: center;
+
+                    HorizontalLayout {
+                        alignment: space-between;
+                        Text {
+                            text: I18n.cleanup_confirm_count_label;
+                            font-family: Typography.font_family;
+                            font-size: 11px;
+                            color: Theme.text_secondary;
+                            vertical-alignment: center;
+                        }
+                        Text {
+                            text: root.total_selected_items_count;
+                            font-family: Typography.font_mono;
+                            font-size: 11px;
+                            font-weight: Typography.weight_bold;
+                            color: Theme.text_primary;
+                            vertical-alignment: center;
+                        }
+                    }
+
+                    HorizontalLayout {
+                        alignment: space-between;
+                        Text {
+                            text: I18n.cleanup_confirm_size_label;
+                            font-family: Typography.font_family;
+                            font-size: 11px;
+                            color: Theme.text_secondary;
+                            vertical-alignment: center;
+                        }
+                        Text {
+                            text: root.total_selected_size_str;
+                            font-family: Typography.font_mono;
+                            font-size: 11px;
+                            font-weight: Typography.weight_bold;
+                            color: #f87171;
+                            vertical-alignment: center;
+                        }
+                    }
+                }
             }
         }
     }

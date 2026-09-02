@@ -53,7 +53,7 @@ export component TemperatureCard inherits Card {
                     color: Theme.text_primary;
                 }
                 Text {
-                    text: root.cpu_temp_str + " °C";
+                    text: root.cpu_temp_val > 0 ? root.cpu_temp_str + " °C" : "N/A";
                     font-family: Typography.font_mono;
                     font-size: Typography.size_xs;
                     font-weight: Typography.weight_bold;
@@ -97,7 +97,7 @@ export component TemperatureCard inherits Card {
                     color: Theme.text_primary;
                 }
                 Text {
-                    text: root.gpu_temp_str + " °C";
+                    text: root.gpu_temp_val > 0 ? root.gpu_temp_str + " °C" : "N/A";
                     font-family: Typography.font_mono;
                     font-size: Typography.size_xs;
                     font-weight: Typography.weight_bold;
@@ -129,7 +129,9 @@ export component TemperatureCard inherits Card {
 
         // Subtext
         Text {
-            text: root.cpu_temp_val > 80.0 || root.gpu_temp_val > 80.0 ? I18n.dashboard_temp_high : I18n.dashboard_temp_optimal;
+            text: (root.cpu_temp_val > 0 || root.gpu_temp_val > 0) ?
+                (root.cpu_temp_val > 80.0 || root.gpu_temp_val > 80.0 ? I18n.dashboard_temp_high : I18n.dashboard_temp_optimal) :
+                "N/A";
             font-family: Typography.font_family;
             font-size: Typography.size_xs;
             color: Theme.text_primary;

@@ -1,22 +1,22 @@
 export global Theme {
     in-out property <bool> is_dark: true;
 
-    // Backgrounds - Premium deep slate / neutral dark
-    out property <color> background: is_dark ? #121317 : #f8fafc;
+    // Backgrounds - Premium deep slate in dark, soft elegant grey-slate in light
+    out property <color> background: is_dark ? #121317 : #edf0f5;
     out property <color> surface: is_dark ? #1a1c23 : #ffffff;
-    out property <color> surface_secondary: is_dark ? #222530 : #f1f5f9;
-    out property <color> surface_hover: is_dark ? #2a2e3c : #e2e8f0;
-    out property <color> surface_active: is_dark ? #34394a : #cbd5e1;
+    out property <color> surface_secondary: is_dark ? #222530 : #e5eaf2;
+    out property <color> surface_hover: is_dark ? #2a2e3c : #dde4ee;
+    out property <color> surface_active: is_dark ? #34394a : #ced8e6;
 
-    // Borders
-    out property <color> border: is_dark ? #282c38 : #e2e8f0;
-    out property <color> border_subtle: is_dark ? #1e212b : #f1f5f9;
-    out property <color> border_focus: is_dark ? #4a5166 : #94a3b8;
+    // Borders - Crisply defined and slightly darker in light theme
+    out property <color> border: is_dark ? #282c38 : #c6d0dc;
+    out property <color> border_subtle: is_dark ? #1e212b : #d8e0ea;
+    out property <color> border_focus: is_dark ? #6366f1 : #4f46e5;
 
     // Text colors
     out property <color> text_primary: is_dark ? #f1f5f9 : #0f172a;
-    out property <color> text_secondary: is_dark ? #94a3b8 : #64748b;
-    out property <color> text_muted: is_dark ? #64748b : #94a3b8;
+    out property <color> text_secondary: is_dark ? #94a3b8 : #475569;
+    out property <color> text_muted: is_dark ? #64748b : #64748b;
     out property <color> text_inverse: is_dark ? #0f172a : #ffffff;
 
     // Button & Component Accents - Refined graphite / steel slate (not screaming blue)
@@ -24,7 +24,7 @@ export global Theme {
     out property <color> button_primary_hover: is_dark ? #3a4256 : #334155;
     out property <color> button_primary_active: is_dark ? #454f66 : #0f172a;
     out property <color> button_primary_border: is_dark ? #414a60 : #334155;
-    out property <color> button_primary_text: #f8fafc;
+    out property <color> button_primary_text: #ffffff;
 
     out property <color> accent: is_dark ? #6366f1 : #4f46e5;
     out property <color> accent_light: is_dark ? #252838 : #e0e7ff;

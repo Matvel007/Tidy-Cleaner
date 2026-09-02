@@ -20,23 +20,53 @@ export component Modal inherits Rectangle {
     visible: root.is_open;
     z: 1000;
 
-    // Backdrop
-    Rectangle {
-        width: 100%;
-        height: 100%;
-        background: #00000099;
+    // Shake animation state
+    property <int> shake_step: 0;
+    property <length> shake_offset: shake_step == 1 ? 8px :
+                                   shake_step == 2 ? -8px :
+                                   shake_step == 3 ? 5px :
+                                   shake_step == 4 ? -5px :
+                                   shake_step == 5 ? 2px :
+                                   shake_step == 6 ? -2px : 0px;
 
-        TouchArea {
-            clicked => {
-                root.cancelled();
+    animate shake_offset { duration: 40ms; easing: ease-in-out; }
+
+    shake_timer := Timer {
+        interval: 45ms;
+        running: root.shake_step > 0;
+        triggered => {
+            if root.shake_step >= 6 {
+                root.shake_step = 0;
+            } else {
+                root.shake_step += 1;
             }
         }
     }
 
-    // Modal Card
+    function trigger_shake() {
+        root.shake_step = 1;
+    }
+
+    // Semi-transparent Dim Backdrop
+    Rectangle {
+        width: 100%;
+        height: 100%;
+        background: #000000a6;
+
+        backdrop_ta := TouchArea {
+            pointer-event(event) => {
+                if event.kind == PointerEventKind.down {
+                    root.trigger_shake();
+                }
+            }
+        }
+    }
+
+    // Modal Card (isolated from backdrop clicks and animated with shake_offset)
     dialog_card := Rectangle {
-        width: 480px;
-        x: (parent.width - self.width) / 2;
+        width: 360px;
+        height: modal_layout.preferred-height;
+        x: (parent.width - self.width) / 2 + root.shake_offset;
         y: (parent.height - self.height) / 2;
         background: Theme.surface;
         border-radius: Theme.radius_lg;
@@ -44,9 +74,13 @@ export component Modal inherits Rectangle {
         border-color: Theme.border;
         clip: true;
 
-        VerticalLayout {
-            padding: 24px;
-            spacing: 18px;
+        // Card event trap: absorbs clicks inside dialog card
+        TouchArea {}
+
+        modal_layout := VerticalLayout {
+            padding: 16px;
+            spacing: 12px;
+            alignment: start;
 
             // Header
             HorizontalLayout {
@@ -55,19 +89,19 @@ export component Modal inherits Rectangle {
                 Text {
                     text: root.title;
                     font-family: Typography.font_family;
-                    font-size: Typography.size_lg;
+                    font-size: Typography.size_base;
                     font-weight: Typography.weight_bold;
                     color: Theme.text_primary;
                     vertical-alignment: center;
                 }
 
                 IconButton {
-                    size: 30px;
+                    size: 26px;
                     clicked => { root.cancelled(); }
                     IconClose {
                         x: (parent.width - self.width) / 2;
                         y: (parent.height - self.height) / 2;
-                        icon_size: 14px;
+                        icon_size: 13px;
                     }
                 }
             }
@@ -77,18 +111,20 @@ export component Modal inherits Rectangle {
 
             // Footer Actions
             HorizontalLayout {
-                spacing: 12px;
+                spacing: 8px;
                 alignment: end;
 
                 Button {
                     text: root.cancel_text;
                     variant: "secondary";
+                    custom_height: 32px;
                     clicked => { root.cancelled(); }
                 }
 
                 Button {
                     text: root.confirm_text;
                     variant: root.danger_action ? "danger" : "primary";
+                    custom_height: 32px;
                     clicked => { root.confirmed(); }
                 }
             }

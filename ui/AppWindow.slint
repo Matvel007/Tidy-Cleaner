@@ -4,23 +4,21 @@ import { I18n } from "I18n.slint";
 import { Sidebar } from "components/Sidebar.slint";
 import { TitleBar } from "components/TitleBar.slint";
 import { DashboardPage } from "pages/Dashboard.slint";
-import { CleanupPage } from "pages/Cleanup.slint";
-import { ApplicationsPage } from "pages/Applications.slint";
-import { StartupPage } from "pages/Startup.slint";
+import { CleanupPage, CleanupItemData } from "pages/Cleanup.slint";
+import { ApplicationsPage, AppCardData } from "pages/Applications.slint";
+import { StartupPage, StartupCardData } from "pages/Startup.slint";
 import { SettingsPage } from "pages/Settings.slint";
 
-export { Theme, Typography, I18n }
+export { Theme, Typography, I18n, CleanupItemData, AppCardData, StartupCardData }
 
 export component AppWindow inherits Window {
     title: I18n.app_title;
     icon: @image-url("../resources/icons/logo.svg");
     no-frame: true;
-    preferred-width: 890px;
-    preferred-height: 480px;
-    min-width: 890px;
-    max-width: 890px;
+    preferred-width: 960px;
+    preferred-height: 520px;
+    min-width: 680px;
     min-height: 480px;
-    max-height: 480px;
     background: Theme.background;
     default-font-family: Typography.font_family;
 
@@ -31,34 +29,34 @@ export component AppWindow inherits Window {
     in-out property <bool> sidebar_expanded: false;
 
     // CPU Metrics
-    in-out property <string> cpu_usage_str: "0.0";
+    in-out property <string> cpu_usage_str: "0%";
     in-out property <string> cpu_cores_str: "-";
     in-out property <string> cpu_freq_str: "-";
-    in-out property <string> cpu_brand: "CPU";
+    in-out property <string> cpu_brand: "-";
     in-out property <string> cpu_arc_path: "";
 
     // GPU Metrics
-    in-out property <string> gpu_usage_str: "0.0";
-    in-out property <string> gpu_name: "GPU";
-    in-out property <string> gpu_vram_str: "0 MB";
+    in-out property <string> gpu_usage_str: "0%";
+    in-out property <string> gpu_name: "-";
+    in-out property <string> gpu_vram_str: "-";
     in-out property <string> gpu_arc_path: "";
 
     // RAM Metrics
-    in-out property <string> ram_usage_str: "0.0";
-    in-out property <string> ram_used_str: "0 GB";
-    in-out property <string> ram_available_str: "0 GB";
-    in-out property <string> ram_total_str: "0 GB";
+    in-out property <string> ram_usage_str: "0%";
+    in-out property <string> ram_used_str: "0.0 GB";
+    in-out property <string> ram_available_str: "0.0 GB";
+    in-out property <string> ram_total_str: "0.0 GB";
     in-out property <string> ram_arc_path: "";
 
     // Temperature Metrics
-    in-out property <string> cpu_temp_str: "0";
+    in-out property <string> cpu_temp_str: "N/A";
     in-out property <float> cpu_temp_val: 0.0;
-    in-out property <string> gpu_temp_str: "0";
+    in-out property <string> gpu_temp_str: "N/A";
     in-out property <float> gpu_temp_val: 0.0;
 
     // Primary Disk (Disk 1)
-    in-out property <string> disk1_name: "";
-    in-out property <string> disk1_fs: "btrfs";
+    in-out property <string> disk1_name: "Root";
+    in-out property <string> disk1_fs: "ext4";
     in-out property <string> disk1_used_str: "0 GB";
     in-out property <string> disk1_total_str: "0 GB";
     in-out property <string> disk1_free_str: "0 GB";
@@ -67,7 +65,7 @@ export component AppWindow inherits Window {
 
     // Secondary Disk (Disk 2)
     in-out property <bool> has_disk2: false;
-    in-out property <string> disk2_name: "";
+    in-out property <string> disk2_name: "Home";
     in-out property <string> disk2_fs: "ext4";
     in-out property <string> disk2_used_str: "0 GB";
     in-out property <string> disk2_total_str: "0 GB";
@@ -75,11 +73,39 @@ export component AppWindow inherits Window {
     in-out property <float> disk2_usage_ratio: 0.0;
     in-out property <string> disk2_percent_str: "0%";
 
-    // System Overview
+    // System Info
     in-out property <string> os_name: "-";
     in-out property <string> kernel_version: "-";
     in-out property <string> hostname: "-";
     in-out property <string> uptime_str: "-";
+
+    // Cleanup Subsystem State
+    in-out property <bool> cleanup_is_scanning: false;
+    in-out property <bool> cleanup_is_cleaning: false;
+    in-out property <float> cleanup_progress_percent: 0.0;
+    in-out property <string> cleanup_scan_status_text: "";
+    in-out property <string> cleanup_total_found_size_str: "0 B";
+    in-out property <int> cleanup_total_found_items_count: 0;
+    in-out property <string> cleanup_total_selected_size_str: "0 B";
+    in-out property <int> cleanup_total_selected_items_count: 0;
+    in-out property <[CleanupItemData]> cleanup_items: [];
+    in-out property <bool> cleanup_has_scanned: false;
+
+    // Applications Subsystem State
+    in-out property <int> applications_current_page: 1;
+    in-out property <int> applications_total_pages: 1;
+    in-out property <int> applications_total_items: 0;
+    in-out property <int> applications_selected_count: 0;
+    in-out property <string> applications_active_filter: "all";
+    in-out property <[AppCardData]> applications_list: [];
+    in-out property <bool> applications_is_uninstalling: false;
+    in-out property <float> applications_uninstall_progress: 0.0;
+    in-out property <string> applications_uninstall_status_text: "";
+    in-out property <bool> is_kde: true;
+
+    // Startup Subsystem State
+    in-out property <[StartupCardData]> startup_items: [];
+    in-out property <int> startup_total_items: 0;
 
     // Window callbacks
     callback window_minimize();
@@ -88,24 +114,45 @@ export component AppWindow inherits Window {
     // Callbacks to Rust
     callback page_selected(int);
 
+    // Settings state
+    in-out property <bool> settings_autostart_enabled: false;
+    in-out property <bool> settings_start_minimized_enabled: false;
+
     // Settings callbacks
     callback settings_theme_changed(int);
     callback settings_lang_changed(string);
     callback settings_autostart_toggled(bool);
     callback settings_start_minimized_toggled(bool);
-    callback settings_start_in_tray_toggled(bool);
-    callback settings_confirm_delete_toggled(bool);
-    callback settings_show_hidden_toggled(bool);
-    callback settings_open_logs_clicked();
 
-    // Subsystem callbacks
-    callback cleanup_fast_scan();
-    callback cleanup_full_scan();
+    // Cleanup callbacks
+    callback cleanup_start_scan();
+    callback cleanup_cancel();
+    callback cleanup_select_all();
+    callback cleanup_deselect_all();
+    callback cleanup_toggle_item(string);
+    callback cleanup_open_item(string);
     callback cleanup_clean_selected();
+
+    // Applications callbacks
     callback applications_search(string);
     callback applications_page_change(int);
-    callback applications_uninstall();
-    callback startup_add_app();
+    callback applications_select_all();
+    callback applications_deselect_all();
+    callback applications_toggle_app(string);
+    callback applications_open_app(string);
+    callback applications_create_shortcut(string);
+    callback applications_uninstall_single(string);
+    callback applications_confirm_uninstall_batch();
+
+    // Startup callbacks
+    callback startup_search(string);
+    callback startup_toggle_item(string, bool);
+    callback startup_add_entry(string, string, string, bool);
+    callback startup_remove_entry(string);
+    callback startup_browse_file();
+
+    in-out property <string> startup_add_name_input: "";
+    in-out property <string> startup_add_exec_input: "";
 
     VerticalLayout {
         spacing: 0px;
@@ -130,7 +177,7 @@ export component AppWindow inherits Window {
                 }
             }
 
-            // Main Content Area (Full height, no redundant TopBar)
+            // Main Content Area
             Rectangle {
                 horizontal-stretch: 1;
                 vertical-stretch: 1;
@@ -183,32 +230,71 @@ export component AppWindow inherits Window {
                 }
 
                 if root.current_page == 1: CleanupPage {
-                    start_fast_scan => { root.cleanup_fast_scan(); }
-                    start_full_scan => { root.cleanup_full_scan(); }
+                    is_scanning: root.cleanup_is_scanning;
+                    is_cleaning: root.cleanup_is_cleaning;
+                    progress_percent: root.cleanup_progress_percent;
+                    scan_status_text: root.cleanup_scan_status_text;
+                    total_found_size_str: root.cleanup_total_found_size_str;
+                    total_found_items_count: root.cleanup_total_found_items_count;
+                    total_selected_size_str: root.cleanup_total_selected_size_str;
+                    total_selected_items_count: root.cleanup_total_selected_items_count;
+                    items: root.cleanup_items;
+                    has_scanned: root.cleanup_has_scanned;
+
+                    start_scan => { root.cleanup_start_scan(); }
+                    cancel_scan => { root.cleanup_cancel(); }
+                    select_all => { root.cleanup_select_all(); }
+                    deselect_all => { root.cleanup_deselect_all(); }
+                    toggle_item(id) => { root.cleanup_toggle_item(id); }
+                    open_item(id) => { root.cleanup_open_item(id); }
                     clean_selected => { root.cleanup_clean_selected(); }
                 }
 
                 if root.current_page == 2: ApplicationsPage {
+                    current_page: root.applications_current_page;
+                    total_pages: root.applications_total_pages;
+                    total_items: root.applications_total_items;
+                    selected_count: root.applications_selected_count;
+                    apps: root.applications_list;
+                    is_uninstalling: root.applications_is_uninstalling;
+                    uninstall_progress: root.applications_uninstall_progress;
+                    uninstall_status_text: root.applications_uninstall_status_text;
+                    is_kde: root.is_kde;
+
                     search_changed(q) => { root.applications_search(q); }
                     page_changed(p) => { root.applications_page_change(p); }
-                    uninstall_selected => { root.applications_uninstall(); }
+                    select_all => { root.applications_select_all(); }
+                    deselect_all => { root.applications_deselect_all(); }
+                    toggle_app(id) => { root.applications_toggle_app(id); }
+                    open_app(id) => { root.applications_open_app(id); }
+                    create_shortcut(id) => { root.applications_create_shortcut(id); }
+                    confirm_uninstall_single(id) => { root.applications_uninstall_single(id); }
+                    confirm_uninstall_batch => { root.applications_confirm_uninstall_batch(); }
                 }
 
                 if root.current_page == 3: StartupPage {
-                    add_app_clicked => { root.startup_add_app(); }
+                    items: root.startup_items;
+                    total_items: root.startup_total_items;
+                    add_name_input <=> root.startup_add_name_input;
+                    add_exec_input <=> root.startup_add_exec_input;
+
+                    search_changed(q) => { root.startup_search(q); }
+                    toggle_item(id, s) => { root.startup_toggle_item(id, s); }
+                    confirm_add(name, exec, com, term) => { root.startup_add_entry(name, exec, com, term); }
+                    confirm_remove(id) => { root.startup_remove_entry(id); }
+                    browse_file_clicked => { root.startup_browse_file(); }
                 }
 
                 if root.current_page == 4: SettingsPage {
                     theme_mode: root.theme_mode;
                     current_lang: root.current_lang;
+                    autostart_enabled: root.settings_autostart_enabled;
+                    start_minimized_enabled: root.settings_start_minimized_enabled;
+
                     theme_changed(m) => { root.settings_theme_changed(m); }
                     lang_changed(l) => { root.settings_lang_changed(l); }
                     autostart_toggled(v) => { root.settings_autostart_toggled(v); }
                     start_minimized_toggled(v) => { root.settings_start_minimized_toggled(v); }
-                    start_in_tray_toggled(v) => { root.settings_start_in_tray_toggled(v); }
-                    confirm_delete_toggled(v) => { root.settings_confirm_delete_toggled(v); }
-                    show_hidden_toggled(v) => { root.settings_show_hidden_toggled(v); }
-                    open_logs_clicked => { root.settings_open_logs_clicked(); }
                 }
             }
         }

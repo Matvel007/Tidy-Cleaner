@@ -4,79 +4,323 @@ import { I18n } from "../I18n.slint";
 import { SearchInput } from "../components/SearchInput.slint";
 import { Button } from "../components/Button.slint";
 import { Card } from "../components/Card.slint";
+import { ApplicationCard } from "../components/ApplicationCard.slint";
 import { Pagination } from "../components/Pagination.slint";
+import { Modal } from "../components/Modal.slint";
 import { IconApplications } from "../components/Icons.slint";
+import { ScrollView } from "std-widgets.slint";
 
-export component ApplicationsPage inherits VerticalLayout {
+export struct AppCardData {
+    id: string,
+    name: string,
+    version: string,
+    source_name: string,
+    source_code: string,
+    description: string,
+    has_icon_image: bool,
+    icon_image: image,
+    is_desktop_app: bool,
+    is_selected: bool,
+}
+
+export component ApplicationsPage inherits Rectangle {
     in property <string> search_query: "";
     in property <int> current_page: 1;
     in property <int> total_pages: 1;
     in property <int> total_items: 0;
+    in property <int> selected_count: 0;
+    in property <[AppCardData]> apps: [];
+    in property <bool> is_loading: false;
+    in property <bool> is_uninstalling: false;
+    in property <float> uninstall_progress: 0.0;
+    in property <string> uninstall_status_text: "";
+    in-out property <bool> show_batch_modal: false;
+    in-out property <bool> show_single_modal: false;
+    in-out property <string> single_target_id: "";
+    in-out property <string> single_target_name: "";
+    in property <bool> is_kde: true;
 
     callback search_changed(string);
     callback page_changed(int);
-    callback uninstall_selected();
+    callback select_all();
+    callback deselect_all();
+    callback toggle_app(string);
+    callback open_app(string);
+    callback create_shortcut(string);
+    callback confirm_uninstall_single(string);
+    callback confirm_uninstall_batch();
 
-    padding: 24px;
-    spacing: 18px;
+    background: Colors.transparent;
 
-    // Filter and search toolbar
-    HorizontalLayout {
-        spacing: 16px;
+    VerticalLayout {
+        padding: 16px;
+        spacing: 10px;
 
-        SearchInput {
-            placeholder_text: I18n.applications_search_placeholder;
-            horizontal-stretch: 1;
-            edited(query) => { root.search_changed(query); }
+        // TOP TOOLBAR: Left-aligned Search + Delete Button
+        HorizontalLayout {
+            height: 36px;
+            spacing: 8px;
+            alignment: start;
+
+            SearchInput {
+                width: 240px;
+                placeholder_text: I18n.applications_search_placeholder;
+                edited(query) => { root.search_changed(query); }
+            }
+
+            Button {
+                text: root.selected_count > 0 ?
+                    (I18n.applications_uninstall_selected + ": " + root.selected_count) :
+                    I18n.applications_uninstall_selected;
+                variant: "danger";
+                custom_height: 36px;
+                enabled: root.selected_count > 0 && !root.is_uninstalling;
+                clicked => { root.show_batch_modal = true; }
+            }
         }
 
-        Button {
-            text: I18n.applications_uninstall_selected;
-            variant: "danger";
-            custom_height: 38px;
-            enabled: false;
-            clicked => { root.uninstall_selected(); }
+        // UNINSTALL PROGRESS BAR (When Active)
+        if root.is_uninstalling: Card {
+            padding_horizontal: 16px;
+            padding_vertical: 10px;
+            height: 56px;
+
+            VerticalLayout {
+                spacing: 6px;
+                alignment: center;
+
+                HorizontalLayout {
+                    alignment: space-between;
+
+                    Text {
+                        text: I18n.applications_uninstalling + ": " + root.uninstall_status_text;
+                        font-family: Typography.font_family;
+                        font-size: Typography.size_xs;
+                        font-weight: Typography.weight_semibold;
+                        color: Theme.text_primary;
+                        overflow: elide;
+                        max-width: 650px;
+                    }
+
+                    Text {
+                        text: Math.round(root.uninstall_progress) + "%";
+                        font-family: Typography.font_mono;
+                        font-size: Typography.size_xs;
+                        font-weight: Typography.weight_bold;
+                        color: #f87171;
+                        vertical-alignment: center;
+                    }
+                }
+
+                Rectangle {
+                    height: 5px;
+                    border-radius: 2.5px;
+                    background: Theme.surface_secondary;
+                    clip: true;
+
+                    Rectangle {
+                        x: 0px;
+                        y: 0px;
+                        width: parent.width * Math.min(1.0, Math.max(0.0, root.uninstall_progress / 100.0));
+                        height: 100%;
+                        border-radius: 2.5px;
+                        background: #f87171;
+
+                        animate width { duration: 150ms; easing: ease-out; }
+                    }
+                }
+            }
+        }
+
+        // MAIN CONTENT AREA
+        if root.apps.length == 0 && !root.is_loading: Card {
+            vertical-stretch: 1;
+
+            VerticalLayout {
+                alignment: center;
+                spacing: 14px;
+
+                IconApplications {
+                    x: (parent.width - self.width) / 2;
+                    icon_size: 48px;
+                    icon_color: Theme.text_muted;
+                }
+
+                Text {
+                    text: I18n.applications_empty_title;
+                    font-family: Typography.font_family;
+                    font-size: Typography.size_lg;
+                    font-weight: Typography.weight_semibold;
+                    color: Theme.text_primary;
+                    horizontal-alignment: center;
+                }
+
+                Text {
+                    text: I18n.applications_empty_desc;
+                    font-family: Typography.font_family;
+                    font-size: Typography.size_base;
+                    color: Theme.text_muted;
+                    horizontal-alignment: center;
+                }
+            }
+        }
+
+        if root.apps.length > 0: ScrollView {
+            vertical-stretch: 1;
+
+            VerticalLayout {
+                spacing: 6px;
+                padding-right: 6px;
+
+                for app in root.apps: ApplicationCard {
+                    app_id: app.id;
+                    name: app.name;
+                    version: app.version;
+                    source_name: app.source_name;
+                    source_code: app.source_code;
+                    description: app.description;
+                    has_icon_image: app.has_icon_image;
+                    icon_image: app.icon_image;
+                    is_desktop_app: app.is_desktop_app;
+                    is_selected: app.is_selected;
+                    show_shortcut_btn: true;
+
+                    toggled(id) => { root.toggle_app(id); }
+                    open_clicked(id) => { root.open_app(id); }
+                    create_shortcut_clicked(id) => { root.create_shortcut(id); }
+                    uninstall_clicked(id) => {
+                        root.single_target_id = id;
+                        root.single_target_name = app.name;
+                        root.show_single_modal = true;
+                    }
+                }
+            }
+        }
+
+        // PAGINATION FOOTER
+        if root.total_pages > 1: Pagination {
+            current_page: root.current_page;
+            total_pages: root.total_pages;
+            total_items: root.total_items;
+            page_changed(p) => { root.page_changed(p); }
         }
     }
 
-    // Applications list container / Empty state
-    Card {
-        vertical-stretch: 1;
+    // SINGLE APP UNINSTALL CONFIRMATION MODAL
+    if root.show_single_modal: Modal {
+        is_open: root.show_single_modal;
+        title: I18n.applications_confirm_uninstall_title;
+        confirm_text: I18n.applications_uninstall_btn;
+        cancel_text: I18n.common_cancel;
+        danger_action: true;
+        cancelled => { root.show_single_modal = false; }
+        confirmed => {
+            root.show_single_modal = false;
+            root.confirm_uninstall_single(root.single_target_id);
+        }
 
         VerticalLayout {
-            alignment: center;
-            spacing: 14px;
-
-            IconApplications {
-                x: (parent.width - self.width) / 2;
-                icon_size: 48px;
-                icon_color: Theme.text_muted;
-            }
+            spacing: 10px;
+            vertical-stretch: 0;
 
             Text {
-                text: I18n.applications_empty_title;
+                text: I18n.applications_confirm_uninstall_desc;
                 font-family: Typography.font_family;
-                font-size: Typography.size_lg;
-                font-weight: Typography.weight_semibold;
-                color: Theme.text_primary;
-                horizontal-alignment: center;
+                font-size: Typography.size_xs;
+                color: Theme.text_secondary;
+                wrap: word-wrap;
             }
 
-            Text {
-                text: I18n.applications_empty_desc;
-                font-family: Typography.font_family;
-                font-size: Typography.size_base;
-                color: Theme.text_muted;
-                horizontal-alignment: center;
+            Rectangle {
+                background: Theme.surface_secondary;
+                border-radius: Theme.radius_md;
+                border-width: 1px;
+                border-color: Theme.border;
+                height: 44px;
+                vertical-stretch: 0;
+
+                HorizontalLayout {
+                    padding_left: 12px;
+                    padding_right: 12px;
+                    alignment: space-between;
+
+                    Text {
+                        text: I18n.applications_title;
+                        font-family: Typography.font_family;
+                        font-size: 11px;
+                        color: Theme.text_secondary;
+                        vertical-alignment: center;
+                    }
+
+                    Text {
+                        text: root.single_target_name;
+                        font-family: Typography.font_family;
+                        font-size: 11px;
+                        font-weight: Typography.weight_bold;
+                        color: #f87171;
+                        vertical-alignment: center;
+                    }
+                }
             }
         }
     }
 
-    // Pagination
-    Pagination {
-        current_page: root.current_page;
-        total_pages: root.total_pages;
-        total_items: root.total_items;
-        page_changed(p) => { root.page_changed(p); }
+    // BATCH UNINSTALL CONFIRMATION MODAL
+    if root.show_batch_modal: Modal {
+        is_open: root.show_batch_modal;
+        title: I18n.applications_confirm_uninstall_title;
+        confirm_text: I18n.applications_uninstall_btn;
+        cancel_text: I18n.common_cancel;
+        danger_action: true;
+        cancelled => { root.show_batch_modal = false; }
+        confirmed => {
+            root.show_batch_modal = false;
+            root.confirm_uninstall_batch();
+        }
+
+        VerticalLayout {
+            spacing: 10px;
+            vertical-stretch: 0;
+
+            Text {
+                text: I18n.applications_confirm_uninstall_desc;
+                font-family: Typography.font_family;
+                font-size: Typography.size_xs;
+                color: Theme.text_secondary;
+                wrap: word-wrap;
+            }
+
+            Rectangle {
+                background: Theme.surface_secondary;
+                border-radius: Theme.radius_md;
+                border-width: 1px;
+                border-color: Theme.border;
+                height: 44px;
+                vertical-stretch: 0;
+
+                HorizontalLayout {
+                    padding_left: 12px;
+                    padding_right: 12px;
+                    alignment: space-between;
+
+                    Text {
+                        text: I18n.applications_selected_for_uninstall;
+                        font-family: Typography.font_family;
+                        font-size: 11px;
+                        color: Theme.text_secondary;
+                        vertical-alignment: center;
+                    }
+
+                    Text {
+                        text: root.selected_count;
+                        font-family: Typography.font_mono;
+                        font-size: 11px;
+                        font-weight: Typography.weight_bold;
+                        color: #f87171;
+                        vertical-alignment: center;
+                    }
+                }
+            }
+        }
     }
 }

@@ -55,18 +55,6 @@ impl DiskCollector {
         // Sort by total bytes descending so main storage (950 GB) is first, followed by secondary storage (20 GB)
         results.sort_by_key(|a| std::cmp::Reverse(a.total_bytes));
 
-        if results.is_empty() {
-            results.push(DiskInfo {
-                name: String::new(),
-                mount_point: "/".to_string(),
-                file_system: "btrfs".to_string(),
-                total_bytes: 1024 * 1024 * 1024 * 512,
-                used_bytes: 1024 * 1024 * 1024 * 200,
-                available_bytes: 1024 * 1024 * 1024 * 312,
-                usage_ratio: 0.39,
-            });
-        }
-
         results
     }
 }

@@ -70,22 +70,68 @@ export global I18n {
     in-out property <string> cleanup_select_all: "Select All";
     in-out property <string> cleanup_deselect_all: "Deselect All";
     in-out property <string> cleanup_empty_title: "Ready to Scan";
-    in-out property <string> cleanup_empty_desc: "Select a scan mode above to inspect system caches and temporary storage.";
+    in-out property <string> cleanup_empty_desc: "Select Fast Scan for safe caches or Full Scan for deep system inspection.";
+    in-out property <string> cleanup_scanning: "Scanning";
+    in-out property <string> cleanup_cleaning: "Cleaning";
+    in-out property <string> cleanup_status_scanning: "Scanning storage...";
+    in-out property <string> cleanup_status_preparing: "Preparing deletion...";
+    in-out property <string> cleanup_cancel: "Cancel";
+    in-out property <string> cleanup_clean_done: "Cleanup Completed";
+    in-out property <string> cleanup_clean_done_desc: "System caches and selected temporary files were safely cleaned.";
+    in-out property <string> cleanup_clean_selected_btn: "Clean Selected";
+    in-out property <string> cleanup_items_found: "items found";
+    in-out property <string> cleanup_reclaimable: "Reclaimable space";
+    in-out property <string> cleanup_selected: "Selected";
+    in-out property <string> cleanup_nothing_found_title: "System is Clean";
+    in-out property <string> cleanup_nothing_found_desc: "No redundant cache or leftover files were found.";
+    in-out property <string> cleanup_risk_safe: "Safe";
+    in-out property <string> cleanup_risk_warning: "Warning";
+    in-out property <string> cleanup_risk_dangerous: "Dangerous";
+    in-out property <string> cleanup_confirm_title: "Confirm Cleanup";
+    in-out property <string> cleanup_confirm_desc: "Are you sure you want to permanently delete the selected files and caches?";
+    in-out property <string> cleanup_confirm_count_label: "Items to delete:";
+    in-out property <string> cleanup_confirm_size_label: "Reclaimable space:";
 
     // Applications
     in-out property <string> applications_title: "Installed Applications";
     in-out property <string> applications_subtitle: "Manage desktop packages and package manager entries";
-    in-out property <string> applications_search_placeholder: "Search installed applications...";
-    in-out property <string> applications_uninstall_selected: "Uninstall Selected";
+    in-out property <string> applications_search_placeholder: "Search...";
+    in-out property <string> applications_filter_all: "All";
+    in-out property <string> applications_uninstall_selected: "Uninstall";
+    in-out property <string> applications_uninstalling: "Uninstalling";
+    in-out property <string> applications_status_preparing: "Preparing uninstallation...";
+    in-out property <string> applications_confirm_uninstall_title: "Confirm Uninstallation";
+    in-out property <string> applications_confirm_uninstall_desc: "Are you sure you want to remove the selected applications? System packages will require administrative authorization.";
+    in-out property <string> applications_selected_for_uninstall: "Applications to uninstall:";
+    in-out property <string> applications_uninstall_btn: "Uninstall";
+    in-out property <string> applications_shortcut_created: "Desktop shortcut created";
     in-out property <string> applications_empty_title: "No Applications Found";
     in-out property <string> applications_empty_desc: "No applications match the current search query or filter.";
 
     // Startup
     in-out property <string> startup_title: "Startup Applications";
-    in-out property <string> startup_subtitle: "Manage autostart desktop entries and background services";
-    in-out property <string> startup_add_app: "Add Application";
+    in-out property <string> startup_subtitle: "Manage applications and background services that run on startup";
+    in-out property <string> startup_add_app: "Add to Startup";
     in-out property <string> startup_empty_title: "No Startup Applications";
     in-out property <string> startup_empty_desc: "No custom autostart applications are currently registered.";
+    in-out property <string> startup_source_user: "User";
+    in-out property <string> startup_source_system: "System";
+    in-out property <string> startup_enabled: "Enabled";
+    in-out property <string> startup_disabled: "Disabled";
+    in-out property <string> startup_add_modal_title: "Add Startup Application";
+    in-out property <string> startup_field_name: "Name";
+    in-out property <string> startup_field_name_placeholder: "E.g., My Script or Discord";
+    in-out property <string> startup_field_exec: "Command / File Path";
+    in-out property <string> startup_field_exec_placeholder: "E.g., /usr/bin/discord or ~/script.sh";
+    in-out property <string> startup_field_comment: "Description (optional)";
+    in-out property <string> startup_field_comment_placeholder: "Short description";
+    in-out property <string> startup_field_terminal: "Run in terminal";
+    in-out property <string> startup_save_btn: "Save";
+    in-out property <string> startup_confirm_remove_title: "Remove from Startup";
+    in-out property <string> startup_confirm_remove_desc: "Are you sure you want to remove this entry from autostart?";
+    in-out property <string> startup_remove_btn: "Remove";
+    in-out property <string> tooltip_remove_startup: "Remove from startup";
+    in-out property <string> tooltip_toggle_startup: "Enable / disable startup";
 
     // Settings
     in-out property <string> settings_title: "Settings";
@@ -103,7 +149,25 @@ export global I18n {
     in-out property <string> settings_cleanup_section: "Cleanup Preferences";
     in-out property <string> settings_confirm_delete: "Confirm before deleting files";
     in-out property <string> settings_show_hidden: "Analyze hidden directories";
+    in-out property <string> settings_include_downloads: "Include Downloads in Full Scan";
+    in-out property <string> settings_disks_section: "Disk Management for Cleanup";
+    in-out property <string> settings_disks_desc: "Select drives and partitions available for analysis and cleanup:";
+    in-out property <string> settings_add_custom_mount: "Add Drive / Path";
+    in-out property <string> settings_custom_mount_placeholder: "E.g., /mnt/storage";
+    in-out property <string> settings_notifications_section: "Notifications";
+    in-out property <string> settings_notify_scan: "Notify when scanning finishes";
+    in-out property <string> settings_notify_cleanup: "Notify when cleanup completes";
+    in-out property <string> settings_updates_section: "Software Updates";
+    in-out property <string> settings_check_updates: "Check for Updates";
+    in-out property <string> settings_updates_latest: "You are running the latest version";
+    in-out property <string> settings_updates_checking: "Checking for updates...";
     in-out property <string> settings_about: "About Application";
     in-out property <string> settings_version_label: "Version 0.1.0 (Linux x86_64)";
     in-out property <string> settings_open_logs: "Open Logs Folder";
+
+    // Tooltips
+    in-out property <string> tooltip_open_app: "Открыть приложение";
+    in-out property <string> tooltip_create_shortcut: "Создать ярлык на рабочем столе";
+    in-out property <string> tooltip_uninstall_app: "Удалить приложение";
+    in-out property <string> tooltip_open_folder: "Открыть папку";
 }

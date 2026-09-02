@@ -67,6 +67,20 @@ impl OsInfoCollector {
             format!("{} B", bytes)
         }
     }
+
+    pub fn is_kde() -> bool {
+        if let Ok(desktop) = std::env::var("XDG_CURRENT_DESKTOP") {
+            if desktop.to_uppercase().contains("KDE") {
+                return true;
+            }
+        }
+        if let Ok(session) = std::env::var("DESKTOP_SESSION") {
+            if session.to_uppercase().contains("KDE") || session.to_uppercase().contains("PLASMA") {
+                return true;
+            }
+        }
+        std::env::var("KDE_FULL_SESSION").is_ok()
+    }
 }
 
 #[cfg(test)]

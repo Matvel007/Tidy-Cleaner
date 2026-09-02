@@ -11,18 +11,11 @@ export component SettingsPage inherits ScrollView {
     in property <string> current_lang: "en";
     in property <bool> autostart_enabled: false;
     in property <bool> start_minimized_enabled: false;
-    in property <bool> start_in_tray_enabled: false;
-    in property <bool> confirm_delete_enabled: true;
-    in property <bool> show_hidden_enabled: false;
 
     callback theme_changed(int);
     callback lang_changed(string);
     callback autostart_toggled(bool);
     callback start_minimized_toggled(bool);
-    callback start_in_tray_toggled(bool);
-    callback confirm_delete_toggled(bool);
-    callback show_hidden_toggled(bool);
-    callback open_logs_clicked();
 
     viewport-width: self.width;
 
@@ -30,7 +23,7 @@ export component SettingsPage inherits ScrollView {
         padding: 24px;
         spacing: 20px;
 
-        // Section: Appearance & Language
+        // SECTION 1: Appearance & Language
         Text {
             text: I18n.settings_appearance;
             font-family: Typography.font_family;
@@ -114,7 +107,7 @@ export component SettingsPage inherits ScrollView {
             }
         }
 
-        // Section: Startup & Tray
+        // SECTION 2: Startup & Tray
         Text {
             text: I18n.settings_startup_section;
             font-family: Typography.font_family;
@@ -138,43 +131,10 @@ export component SettingsPage inherits ScrollView {
                     checked: root.start_minimized_enabled;
                     toggled(val) => { root.start_minimized_toggled(val); }
                 }
-
-                Toggle {
-                    text: I18n.settings_start_in_tray;
-                    checked: root.start_in_tray_enabled;
-                    toggled(val) => { root.start_in_tray_toggled(val); }
-                }
             }
         }
 
-        // Section: Cleanup Preferences
-        Text {
-            text: I18n.settings_cleanup_section;
-            font-family: Typography.font_family;
-            font-size: Typography.size_md;
-            font-weight: Typography.weight_semibold;
-            color: Theme.text_primary;
-        }
-
-        Card {
-            VerticalLayout {
-                spacing: 14px;
-
-                Toggle {
-                    text: I18n.settings_confirm_delete;
-                    checked: root.confirm_delete_enabled;
-                    toggled(val) => { root.confirm_delete_toggled(val); }
-                }
-
-                Toggle {
-                    text: I18n.settings_show_hidden;
-                    checked: root.show_hidden_enabled;
-                    toggled(val) => { root.show_hidden_toggled(val); }
-                }
-            }
-        }
-
-        // Section: About
+        // SECTION 3: About
         Text {
             text: I18n.settings_about;
             font-family: Typography.font_family;
@@ -185,7 +145,7 @@ export component SettingsPage inherits ScrollView {
 
         Card {
             VerticalLayout {
-                spacing: 14px;
+                spacing: 8px;
 
                 HorizontalLayout {
                     alignment: space-between;
@@ -194,15 +154,9 @@ export component SettingsPage inherits ScrollView {
                         text: I18n.settings_version_label;
                         font-family: Typography.font_mono;
                         font-size: Typography.size_xs;
-                        color: Theme.text_muted;
+                        font-weight: Typography.weight_bold;
+                        color: Theme.text_primary;
                         vertical-alignment: center;
-                    }
-
-                    Button {
-                        text: I18n.settings_open_logs;
-                        variant: "secondary";
-                        custom_height: 32px;
-                        clicked => { root.open_logs_clicked(); }
                     }
                 }
             }

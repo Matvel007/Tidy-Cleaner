@@ -1,0 +1,13 @@
+pub mod aur;
+pub mod desktop_entries;
+pub mod dpkg;
+pub mod flatpak;
+pub mod manager;
+pub mod models;
+pub mod pacman;
+pub mod polkit;
+pub mod rpm;
+pub mod service;
+pub mod snap;
+pub mod traits;
+pub mod ui_bridge;

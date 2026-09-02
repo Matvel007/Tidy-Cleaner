@@ -4,61 +4,204 @@ import { I18n } from "../I18n.slint";
 import { Button } from "../components/Button.slint";
 import { Card } from "../components/Card.slint";
 import { IconStartup } from "../components/Icons.slint";
+import { StartupCard } from "../components/StartupCard.slint";
+import { SearchInput } from "../components/SearchInput.slint";
+import { Modal } from "../components/Modal.slint";
+import { AddStartupModal } from "../components/AddStartupModal.slint";
+import { ScrollView } from "std-widgets.slint";
 
-export component StartupPage inherits VerticalLayout {
-    callback add_app_clicked();
+export struct StartupCardData {
+    id: string,
+    name: string,
+    comment: string,
+    exec: string,
+    source_name: string,
+    source_code: string,
+    has_icon_image: bool,
+    icon_image: image,
+    enabled: bool,
+    is_terminal: bool,
+}
 
-    padding: 24px;
-    spacing: 18px;
+export component StartupPage inherits Rectangle {
+    in property <string> search_query: "";
+    in property <[StartupCardData]> items: [];
+    in property <int> total_items: 0;
+    in-out property <bool> show_add_modal: false;
+    in-out property <bool> show_remove_modal: false;
+    in-out property <string> target_remove_id: "";
+    in-out property <string> target_remove_name: "";
+    in-out property <string> add_name_input: "";
+    in-out property <string> add_exec_input: "";
+    in-out property <string> add_comment_input: "";
+    in-out property <bool> add_terminal_checked: false;
 
-    HorizontalLayout {
-        alignment: space-between;
+    callback search_changed(string);
+    callback toggle_item(string, bool);
+    callback confirm_add(string, string, string, bool);
+    callback confirm_remove(string);
+    callback browse_file_clicked();
 
-        Text {
-            text: I18n.startup_subtitle;
-            font-family: Typography.font_family;
-            font-size: Typography.size_base;
-            color: Theme.text_muted;
-            vertical-alignment: center;
+    background: Colors.transparent;
+
+    VerticalLayout {
+        padding: 16px;
+        spacing: 10px;
+
+        // TOP TOOLBAR: Search Bar + Add Button
+        HorizontalLayout {
+            height: 36px;
+            spacing: 8px;
+            alignment: start;
+
+            SearchInput {
+                width: 240px;
+                placeholder_text: I18n.applications_search_placeholder;
+                edited(query) => { root.search_changed(query); }
+            }
+
+            Button {
+                text: I18n.startup_add_app;
+                variant: "primary";
+                custom_height: 36px;
+                clicked => {
+                    root.show_add_modal = true;
+                }
+            }
         }
 
-        Button {
-            text: I18n.startup_add_app;
-            variant: "primary";
-            custom_height: 38px;
-            clicked => { root.add_app_clicked(); }
+        // CONTENT: Empty State or Scrollable List
+        if root.items.length == 0: Card {
+            vertical-stretch: 1;
+
+            VerticalLayout {
+                alignment: center;
+                spacing: 14px;
+
+                IconStartup {
+                    x: (parent.width - self.width) / 2;
+                    icon_size: 48px;
+                    icon_color: Theme.text_muted;
+                }
+
+                Text {
+                    text: I18n.startup_empty_title;
+                    font-family: Typography.font_family;
+                    font-size: Typography.size_lg;
+                    font-weight: Typography.weight_semibold;
+                    color: Theme.text_primary;
+                    horizontal-alignment: center;
+                }
+
+                Text {
+                    text: I18n.startup_empty_desc;
+                    font-family: Typography.font_family;
+                    font-size: Typography.size_base;
+                    color: Theme.text_muted;
+                    horizontal-alignment: center;
+                }
+            }
+        }
+
+        if root.items.length > 0: ScrollView {
+            vertical-stretch: 1;
+
+            VerticalLayout {
+                spacing: 8px;
+
+                for item in root.items: StartupCard {
+                    item_id: item.id;
+                    name: item.name;
+                    comment: item.comment;
+                    exec: item.exec;
+                    source_name: item.source_name;
+                    source_code: item.source_code;
+                    has_icon_image: item.has_icon_image;
+                    icon_image: item.icon_image;
+                    enabled: item.enabled;
+                    is_terminal: item.is_terminal;
+
+                    toggled(id, state) => {
+                        root.toggle_item(id, state);
+                    }
+                    remove_clicked(id) => {
+                        root.target_remove_id = id;
+                        root.target_remove_name = item.name;
+                        root.show_remove_modal = true;
+                    }
+                }
+            }
         }
     }
 
-    // Startup items container / Empty state
-    Card {
-        vertical-stretch: 1;
+    // Add Startup Modal (Uses standard compact Modal with shake animation)
+    AddStartupModal {
+        is_open: root.show_add_modal;
+        name_input <=> root.add_name_input;
+        exec_input <=> root.add_exec_input;
+        comment_input <=> root.add_comment_input;
+        terminal_checked <=> root.add_terminal_checked;
+        browse_clicked => {
+            root.browse_file_clicked();
+        }
+        cancelled => {
+            root.show_add_modal = false;
+        }
+        saved(name, exec, comment, term) => {
+            root.show_add_modal = false;
+            root.confirm_add(name, exec, comment, term);
+        }
+    }
+
+    // Remove Confirmation Modal (Uses standard compact Modal with shake animation)
+    Modal {
+        is_open: root.show_remove_modal;
+        title: I18n.startup_confirm_remove_title;
+        confirm_text: I18n.startup_remove_btn;
+        cancel_text: I18n.common_cancel;
+        danger_action: true;
+        cancelled => {
+            root.show_remove_modal = false;
+        }
+        confirmed => {
+            root.show_remove_modal = false;
+            root.confirm_remove(root.target_remove_id);
+        }
 
         VerticalLayout {
-            alignment: center;
-            spacing: 14px;
-
-            IconStartup {
-                x: (parent.width - self.width) / 2;
-                icon_size: 48px;
-                icon_color: Theme.text_muted;
-            }
+            spacing: 10px;
+            vertical-stretch: 0;
 
             Text {
-                text: I18n.startup_empty_title;
+                text: I18n.startup_confirm_remove_desc;
                 font-family: Typography.font_family;
-                font-size: Typography.size_lg;
-                font-weight: Typography.weight_semibold;
-                color: Theme.text_primary;
-                horizontal-alignment: center;
+                font-size: Typography.size_xs;
+                color: Theme.text_secondary;
+                wrap: word-wrap;
             }
 
-            Text {
-                text: I18n.startup_empty_desc;
-                font-family: Typography.font_family;
-                font-size: Typography.size_base;
-                color: Theme.text_muted;
-                horizontal-alignment: center;
+            Rectangle {
+                background: Theme.surface_secondary;
+                border-radius: Theme.radius_md;
+                border-width: 1px;
+                border-color: Theme.border;
+                height: 38px;
+                vertical-stretch: 0;
+
+                HorizontalLayout {
+                    padding_left: 12px;
+                    padding_right: 12px;
+                    alignment: start;
+
+                    Text {
+                        text: root.target_remove_name;
+                        font-family: Typography.font_family;
+                        font-size: 11px;
+                        font-weight: Typography.weight_bold;
+                        color: #f87171;
+                        vertical-alignment: center;
+                    }
+                }
             }
         }
     }

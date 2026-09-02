@@ -13,7 +13,7 @@ impl Default for GpuMetrics {
     fn default() -> Self {
         Self {
             usage_percent: 0.0,
-            name: "GPU".to_string(),
+            name: String::new(),
             used_memory_mb: 0,
             total_memory_mb: 0,
         }
@@ -72,7 +72,26 @@ impl GpuCollector {
             }
         }
 
-        // Fallback default
+        // 3. Try sysfs for Intel iGPU (/sys/class/drm/card*/gt_busy_percent)
+        if let Ok(entries) = std::fs::read_dir("/sys/class/drm") {
+            for entry in entries.flatten() {
+                let path = entry.path().join("gt_busy_percent");
+                if path.exists() {
+                    if let Ok(content) = std::fs::read_to_string(&path) {
+                        if let Ok(val) = content.trim().parse::<f32>() {
+                            return GpuMetrics {
+                                usage_percent: val,
+                                name: "Intel GPU".to_string(),
+                                used_memory_mb: 0,
+                                total_memory_mb: 0,
+                            };
+                        }
+                    }
+                }
+            }
+        }
+
+        // Fallback default (no GPU detected)
         GpuMetrics::default()
     }
 }

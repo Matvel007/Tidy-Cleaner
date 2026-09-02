@@ -1,0 +1,116 @@
+import { Theme } from "../theme/Palette.slint";
+import { Typography } from "../theme/Typography.slint";
+import { I18n } from "../I18n.slint";
+import { Button } from "Button.slint";
+import { IconTrash } from "Icons.slint";
+
+export component RemoveStartupModal inherits Rectangle {
+    in-out property <bool> is_open: false;
+    in property <string> target_name: "";
+
+    callback canceled();
+    callback confirmed();
+
+    visible: is_open;
+    z: 1000;
+    x: 0;
+    y: 0;
+    width: 100%;
+    height: 100%;
+    background: #00000088;
+
+    TouchArea {
+        clicked => {
+            root.canceled();
+        }
+    }
+
+    Rectangle {
+        x: (parent.width - self.width) / 2;
+        y: (parent.height - self.height) / 2;
+        width: 440px;
+        background: Theme.surface;
+        border-radius: Theme.radius_lg;
+        border-width: 1px;
+        border-color: Theme.border;
+        drop-shadow-color: #00000080;
+        drop-shadow-blur: 24px;
+        drop-shadow-offset-y: 8px;
+
+        TouchArea {}
+
+        VerticalLayout {
+            padding: 24px;
+            spacing: 16px;
+
+            HorizontalLayout {
+                spacing: 12px;
+                alignment: start;
+
+                Rectangle {
+                    width: 36px;
+                    height: 36px;
+                    border-radius: Theme.radius_md;
+                    background: #7f1d1d33;
+
+                    IconTrash {
+                        x: (parent.width - self.width) / 2;
+                        y: (parent.height - self.height) / 2;
+                        icon_size: 18px;
+                        icon_color: #f87171;
+                    }
+                }
+
+                VerticalLayout {
+                    alignment: center;
+                    spacing: 3px;
+
+                    Text {
+                        text: I18n.startup_confirm_remove_title;
+                        font-family: Typography.font_family;
+                        font-size: Typography.size_base;
+                        font-weight: Typography.weight_bold;
+                        color: Theme.text_primary;
+                    }
+
+                    Text {
+                        text: root.target_name;
+                        font-family: Typography.font_family;
+                        font-size: Typography.size_xs;
+                        color: Theme.accent;
+                    }
+                }
+            }
+
+            Text {
+                text: I18n.startup_confirm_remove_desc;
+                font-family: Typography.font_family;
+                font-size: Typography.size_xs;
+                color: Theme.text_muted;
+            }
+
+            HorizontalLayout {
+                spacing: 12px;
+                alignment: end;
+
+                Button {
+                    text: I18n.cleanup_cancel;
+                    variant: "secondary";
+                    custom_height: 34px;
+                    clicked => {
+                        root.canceled();
+                    }
+                }
+
+                Button {
+                    text: I18n.startup_remove_btn;
+                    variant: "danger";
+                    custom_height: 34px;
+                    clicked => {
+                        root.confirmed();
+                    }
+                }
+            }
+        }
+    }
+}

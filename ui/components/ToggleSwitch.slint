@@ -1,0 +1,42 @@
+import { Theme } from "../theme/Palette.slint";
+
+export component ToggleSwitch inherits Rectangle {
+    in-out property <bool> checked: false;
+    in property <bool> enabled: true;
+
+    callback toggled(bool);
+
+    width: 38px;
+    height: 20px;
+    border-radius: 10px;
+    background: root.checked ? Theme.accent : Theme.surface_secondary;
+    border-width: 1px;
+    border-color: root.checked ? Theme.accent : Theme.border;
+
+    animate background { duration: 150ms; easing: ease-out; }
+    animate border-color { duration: 150ms; easing: ease-out; }
+
+    TouchArea {
+        enabled: root.enabled;
+        mouse-cursor: pointer;
+        clicked => {
+            root.checked = !root.checked;
+            root.toggled(root.checked);
+        }
+    }
+
+    // Thumb Indicator
+    Rectangle {
+        x: root.checked ? (parent.width - self.width - 2px) : 2px;
+        y: 2px;
+        width: 14px;
+        height: 14px;
+        border-radius: 7px;
+        background: #ffffff;
+        drop-shadow-color: #00000044;
+        drop-shadow-blur: 3px;
+        drop-shadow-offset-y: 1px;
+
+        animate x { duration: 150ms; easing: ease-out; }
+    }
+}

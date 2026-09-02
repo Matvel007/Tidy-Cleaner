@@ -1,0 +1,36 @@
+import { Theme } from "../theme/Palette.slint";
+import { Typography } from "../theme/Typography.slint";
+
+export component Tooltip inherits Rectangle {
+    in property <string> text: "";
+    in property <bool> is_visible: false;
+
+    opacity: is_visible ? 1.0 : 0.0;
+    visible: is_visible;
+    background: #18181b;
+    border-radius: 4px;
+    border-width: 1px;
+    border-color: #3f3f46;
+    drop-shadow-color: #000000aa;
+    drop-shadow-blur: 6px;
+    drop-shadow-offset-y: 2px;
+    height: 22px;
+    z: 200;
+
+    animate opacity { duration: 120ms; easing: ease-out; }
+
+    HorizontalLayout {
+        padding-left: 8px;
+        padding-right: 8px;
+        alignment: center;
+
+        Text {
+            text: root.text;
+            font-family: Typography.font_family;
+            font-size: 10px;
+            font-weight: Typography.weight_medium;
+            color: #f4f4f5;
+            vertical-alignment: center;
+        }
+    }
+}

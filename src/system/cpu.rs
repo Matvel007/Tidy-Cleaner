@@ -25,6 +25,7 @@ impl CpuCollector {
 
     pub fn collect(&mut self, sys: &mut System) -> CpuMetrics {
         sys.refresh_cpu_usage();
+        sys.refresh_cpu_frequency();
 
         let cpus = sys.cpus();
         let core_count = cpus.len();

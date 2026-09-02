@@ -8,10 +8,6 @@ pub struct AppSettings {
     pub language: String,
     pub autostart: bool,
     pub start_minimized: bool,
-    pub start_in_tray: bool,
-    pub confirm_delete: bool,
-    pub show_hidden: bool,
-    pub selected_disks: Vec<String>,
 }
 
 impl Default for AppSettings {
@@ -21,10 +17,6 @@ impl Default for AppSettings {
             language: "en".to_string(),
             autostart: false,
             start_minimized: false,
-            start_in_tray: false,
-            confirm_delete: true,
-            show_hidden: false,
-            selected_disks: vec!["/".to_string()],
         }
     }
 }

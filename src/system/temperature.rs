@@ -2,35 +2,23 @@ use serde::{Deserialize, Serialize};
 use std::process::Command;
 use sysinfo::Components;
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct TemperatureMetrics {
-    pub cpu_temp_c: f32,
-    pub gpu_temp_c: f32,
-}
-
-impl Default for TemperatureMetrics {
-    fn default() -> Self {
-        Self {
-            cpu_temp_c: 45.0,
-            gpu_temp_c: 40.0,
-        }
-    }
+    pub cpu_temp_c: Option<f32>,
+    pub gpu_temp_c: Option<f32>,
 }
 
 pub struct TemperatureCollector;
 
 impl TemperatureCollector {
     pub fn collect() -> TemperatureMetrics {
-        let cpu_temp_c = Self::collect_cpu_temp();
-        let gpu_temp_c = Self::collect_gpu_temp();
-
         TemperatureMetrics {
-            cpu_temp_c,
-            gpu_temp_c,
+            cpu_temp_c: Self::collect_cpu_temp(),
+            gpu_temp_c: Self::collect_gpu_temp(),
         }
     }
 
-    fn collect_cpu_temp() -> f32 {
+    fn collect_cpu_temp() -> Option<f32> {
         let components = Components::new_with_refreshed_list();
         let mut max_temp = 0.0f32;
         let mut found = false;
@@ -53,28 +41,46 @@ impl TemperatureCollector {
         }
 
         if found && max_temp > 0.0 {
-            return max_temp;
+            return Some(max_temp);
         }
 
-        // Fallback: /sys/class/thermal/thermal_zone*/temp
+        // Fallback: /sys/class/thermal/thermal_zone*/temp, preferring CPU-type zones.
         if let Ok(entries) = std::fs::read_dir("/sys/class/thermal") {
+            let mut fallback: Option<f32> = None;
             for entry in entries.flatten() {
-                let path = entry.path().join("temp");
-                if let Ok(content) = std::fs::read_to_string(path) {
+                let zone_dir = entry.path();
+                let zone_type = std::fs::read_to_string(zone_dir.join("type"))
+                    .unwrap_or_default()
+                    .to_lowercase();
+                let is_cpu_zone = zone_type.contains("x86_pkg_temp")
+                    || zone_type.contains("cpu")
+                    || zone_type.contains("k10temp")
+                    || zone_type.contains("core");
+
+                let temp_path = zone_dir.join("temp");
+                if let Ok(content) = std::fs::read_to_string(temp_path) {
                     if let Ok(raw) = content.trim().parse::<f32>() {
                         let val = if raw > 1000.0 { raw / 1000.0 } else { raw };
                         if (15.0..115.0).contains(&val) {
-                            return val;
+                            if is_cpu_zone {
+                                return Some(val);
+                            }
+                            if fallback.is_none() {
+                                fallback = Some(val);
+                            }
                         }
                     }
                 }
             }
+            if fallback.is_some() {
+                return fallback;
+            }
         }
 
-        45.0
+        None
     }
 
-    fn collect_gpu_temp() -> f32 {
+    fn collect_gpu_temp() -> Option<f32> {
         // 1. Try NVIDIA-SMI
         if let Ok(output) = Command::new("nvidia-smi")
             .args([
@@ -87,7 +93,7 @@ impl TemperatureCollector {
                 let text = String::from_utf8_lossy(&output.stdout);
                 if let Some(line) = text.lines().next() {
                     if let Ok(temp) = line.trim().parse::<f32>() {
-                        return temp;
+                        return Some(temp);
                     }
                 }
             }
@@ -102,7 +108,7 @@ impl TemperatureCollector {
                         let t_path = h.path().join("temp1_input");
                         if let Ok(content) = std::fs::read_to_string(t_path) {
                             if let Ok(raw) = content.trim().parse::<f32>() {
-                                return if raw > 1000.0 { raw / 1000.0 } else { raw };
+                                return Some(if raw > 1000.0 { raw / 1000.0 } else { raw });
                             }
                         }
                     }
@@ -110,7 +116,7 @@ impl TemperatureCollector {
             }
         }
 
-        40.0
+        None
     }
 }
 
@@ -121,7 +127,11 @@ mod tests {
     #[test]
     fn test_temperature_collector() {
         let t = TemperatureCollector::collect();
-        assert!(t.cpu_temp_c >= 0.0 && t.cpu_temp_c <= 120.0);
-        assert!(t.gpu_temp_c >= 0.0 && t.gpu_temp_c <= 120.0);
+        if let Some(cpu) = t.cpu_temp_c {
+            assert!((0.0..=120.0).contains(&cpu));
+        }
+        if let Some(gpu) = t.gpu_temp_c {
+            assert!((0.0..=120.0).contains(&gpu));
+        }
     }
 }

@@ -15,25 +15,25 @@ export component Button inherits Rectangle {
     clip: true;
 
     // Background color computation
-    background: !root.enabled ? (Theme.is_dark ? #1e2029 : #f1f5f9) :
+    background: !root.enabled ? (Theme.is_dark ? #1e2029 : #ffffff) :
         variant == "primary" ? (touch.pressed ? Theme.button_primary_active : (touch.has-hover ? Theme.button_primary_hover : Theme.button_primary_bg)) :
         variant == "danger" ? (touch.pressed ? Theme.danger_bg.darker(15%) : (touch.has-hover ? Theme.danger_hover : Theme.danger_bg)) :
-        variant == "secondary" ? (touch.pressed ? Theme.surface_active : (touch.has-hover ? Theme.surface_hover : Theme.surface_secondary)) :
+        variant == "secondary" ? (touch.pressed ? (Theme.is_dark ? Theme.surface_active : #e5eaf2) : (touch.has-hover ? (Theme.is_dark ? Theme.surface_hover : #f1f5f9) : (Theme.is_dark ? Theme.surface_secondary : #ffffff))) :
         /* ghost */ (touch.pressed ? Theme.surface_active : (touch.has-hover ? Theme.surface_hover : Colors.transparent));
 
     border-width: 1px;
-    border-color: !root.enabled ? Colors.transparent :
+    border-color: !root.enabled ? (Theme.is_dark ? #282c38 : #cbd5e1) :
         variant == "primary" ? (touch.has-hover ? Theme.button_primary_border.brighter(15%) : Theme.button_primary_border) :
         variant == "danger" ? (touch.has-hover ? Theme.danger_border.brighter(15%) : Theme.danger_border) :
-        variant == "secondary" ? (touch.has-hover ? Theme.border_focus : Theme.border) :
+        variant == "secondary" ? (touch.has-hover ? Theme.accent : Theme.border) :
         Colors.transparent;
 
     animate background { duration: 150ms; easing: ease-out; }
     animate border-color { duration: 150ms; easing: ease-out; }
 
     HorizontalLayout {
-        padding-left: 16px;
-        padding-right: 16px;
+        padding-left: 14px;
+        padding-right: 14px;
         alignment: center;
 
         Text {
@@ -54,8 +54,10 @@ export component Button inherits Rectangle {
     touch := TouchArea {
         enabled: root.enabled;
         mouse-cursor: root.enabled ? pointer : default;
-        clicked => {
-            root.clicked();
+        pointer-event(event) => {
+            if event.kind == PointerEventKind.down {
+                root.clicked();
+            }
         }
     }
 }
