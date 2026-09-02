@@ -54,7 +54,27 @@
 
 ---
 
-## 🚀 Сборка и запуск
+## 📦 Установка
+
+### Arch Linux / CachyOS / Manjaro (AUR)
+
+Быстрая установка готового бинарного пакета (мгновенно, без компиляции):
+```bash
+yay -S tidy-cleaner-bin
+# или через paru
+paru -S tidy-cleaner-bin
+```
+
+Либо сборка актуальной версии из исходного кода:
+```bash
+yay -S tidy-cleaner-git
+# или через paru
+paru -S tidy-cleaner-git
+```
+
+---
+
+## 🚀 Сборка из исходного кода
 
 ### Требования
 

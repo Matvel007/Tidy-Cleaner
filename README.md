@@ -54,7 +54,27 @@
 
 ---
 
-## 🚀 Building & Running
+## 📦 Installation
+
+### Arch Linux / CachyOS / Manjaro (AUR)
+
+Fastest installation via precompiled binary (instant, no compilation needed):
+```bash
+yay -S tidy-cleaner-bin
+# or with paru
+paru -S tidy-cleaner-bin
+```
+
+Or build the latest master branch from source:
+```bash
+yay -S tidy-cleaner-git
+# or with paru
+paru -S tidy-cleaner-git
+```
+
+---
+
+## 🚀 Building & Running from Source
 
 ### Prerequisites
 
