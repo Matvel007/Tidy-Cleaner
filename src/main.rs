@@ -125,9 +125,18 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     });
 
     // Honor the --minimized flag written into the autostart .desktop Exec line.
+    // The window must be shown first, so minimize shortly after the event loop starts.
     if std::env::args().any(|a| a == "--minimized") {
-        window.window().set_minimized(false);
-        window.window().set_minimized(true);
+        let win_min_start = window.as_weak();
+        tokio::spawn(async move {
+            tokio::time::sleep(Duration::from_millis(400)).await;
+            let _ = slint::invoke_from_event_loop(move || {
+                if let Some(w) = win_min_start.upgrade() {
+                    w.window().set_minimized(false);
+                    w.window().set_minimized(true);
+                }
+            });
+        });
     }
 
     window.run()?;

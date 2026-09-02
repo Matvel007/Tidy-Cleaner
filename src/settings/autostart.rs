@@ -3,12 +3,22 @@ use crate::startup::models::CreateStartupRequest;
 use anyhow::Result;
 use std::fs;
 
+/// Filename used by older versions (before the underscore/hyphen mismatch was
+/// fixed). Removed so a stale entry can't launch a second instance.
+const LEGACY_AUTOSTART_FILE_NAME: &str = "tidy_cleaner.desktop";
+
 pub struct AppAutostartManager;
 
 impl AppAutostartManager {
     pub fn set_app_autostart(enabled: bool, start_minimized: bool) -> Result<()> {
         let user_dir = DesktopAutostart::get_user_autostart_dir();
         let target_file = user_dir.join(APP_AUTOSTART_FILE_NAME);
+
+        // Always clear any legacy entry from older versions.
+        let legacy_file = user_dir.join(LEGACY_AUTOSTART_FILE_NAME);
+        if legacy_file.exists() {
+            let _ = fs::remove_file(&legacy_file);
+        }
 
         if enabled {
             let exe_path = std::env::current_exe()?.to_string_lossy().to_string();

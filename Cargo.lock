@@ -4887,7 +4887,7 @@ dependencies = [
 
 [[package]]
 name = "tidy-cleaner"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "anyhow",
  "quick-xml 0.37.5",
