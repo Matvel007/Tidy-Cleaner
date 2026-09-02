@@ -215,7 +215,7 @@
     <string name="settings.updates_latest">You are running the latest version</string>
     <string name="settings.updates_checking">Checking for updates...</string>
     <string name="settings.about">About</string>
-    <string name="settings.version_label">Version 0.1.1 (Linux x86_64)</string>
+    <string name="settings.version_label">Version 0.1.0 (Linux x86_64)</string>
     <string name="settings.open_logs">Open logs directory</string>
 
     <!-- Tooltips -->

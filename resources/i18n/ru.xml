@@ -215,7 +215,7 @@
     <string name="settings.updates_latest">Установлена актуальная версия</string>
     <string name="settings.updates_checking">Проверка наличия обновлений...</string>
     <string name="settings.about">О программе</string>
-    <string name="settings.version_label">Версия 0.1.1 (Linux x86_64)</string>
+    <string name="settings.version_label">Версия 0.1.0 (Linux x86_64)</string>
     <string name="settings.open_logs">Открыть папку логов</string>
 
     <!-- Tooltips -->
