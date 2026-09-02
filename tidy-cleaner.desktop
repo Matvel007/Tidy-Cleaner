@@ -1,0 +1,14 @@
+[Desktop Entry]
+Type=Application
+Version=1.0
+Name=Tidy Cleaner
+GenericName=System Cleaner & Telemetry
+GenericName[ru]=Очистка системы и мониторинг
+Comment=Modern Linux system optimizer, cleaner, and hardware monitor
+Comment[ru]=Современный инструмент очистки, оптимизации и мониторинга системы
+Exec=tidy-cleaner %U
+Icon=tidy-cleaner
+Terminal=false
+Categories=System;Utility;Monitor;
+Keywords=cleaner;system;monitor;telemetry;storage;optimization;
+StartupNotify=true
