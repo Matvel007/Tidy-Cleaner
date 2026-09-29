@@ -60,6 +60,7 @@ export component DashboardPage inherits VerticalLayout {
 
     // Swap Metrics
     in property <bool> has_swap: false;
+    in property <bool> is_zram: false;
     in property <string> swap_used_str: "0.0 GB";
     in property <string> swap_total_str: "0.0 GB";
     in property <string> swap_usage_str: "0.0";
@@ -117,7 +118,7 @@ export component DashboardPage inherits VerticalLayout {
                     title: "RAM";
                     value_str: root.ram_usage_str;
                     subtext_top: root.ram_used_str + " / " + root.ram_total_str;
-                    subtext_bottom: root.has_swap ? (I18n.dashboard_swap_label + ": " + root.swap_used_str + " (" + root.swap_usage_str + "%)") : (I18n.dashboard_ram_available + ": " + root.ram_available_str);
+                    subtext_bottom: root.has_swap ? ((root.is_zram ? I18n.dashboard_zram_label : I18n.dashboard_swap_label) + ": " + root.swap_used_str + " (" + root.swap_usage_str + "%)") : (I18n.dashboard_ram_available + ": " + root.ram_available_str);
                     ring_color: Theme.ram_chart;
                     arc_path: root.ram_arc_path;
                 }

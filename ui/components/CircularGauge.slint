@@ -11,11 +11,10 @@ export component CircularGauge inherits Card {
     in property <string> arc_path: "";
 
     padding_horizontal: 12px;
-    padding_vertical: 10px;
+    padding_vertical: 12px;
 
     VerticalLayout {
-        spacing: 6px;
-        alignment: center;
+        alignment: space-between;
 
         // Card Header Title with safe spacing
         HorizontalLayout {
@@ -89,16 +88,23 @@ export component CircularGauge inherits Card {
             }
         }
 
-        // Bottom Subtext Info (wraps up to 2 lines so long CPU/GPU names fit)
-        if root.subtext_bottom != "": Text {
-            text: root.subtext_bottom;
-            font-family: Typography.font_family;
-            font-size: Typography.size_xs;
-            color: Theme.text_primary;
-            horizontal-alignment: center;
-            vertical-alignment: center;
-            wrap: word-wrap;
-            min-height: 26px;
+        // Bottom Subtext Info (fixed height container so all cards align identically)
+        Rectangle {
+            height: 28px;
+
+            VerticalLayout {
+                alignment: center;
+
+                if root.subtext_bottom != "": Text {
+                    text: root.subtext_bottom;
+                    font-family: Typography.font_family;
+                    font-size: Typography.size_xs;
+                    color: Theme.text_primary;
+                    horizontal-alignment: center;
+                    vertical-alignment: center;
+                    wrap: word-wrap;
+                }
+            }
         }
     }
 }

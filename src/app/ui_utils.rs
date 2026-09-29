@@ -65,6 +65,7 @@ pub fn update_ui_strings(window: &AppWindow, state: &AppState) {
     i18n.set_dashboard_storage_filesystem(loc.t("dashboard.storage_filesystem").into());
     i18n.set_dashboard_cores_label(loc.t("dashboard.cores_label").into());
     i18n.set_dashboard_swap_label(loc.t("dashboard.swap_label").into());
+    i18n.set_dashboard_zram_label(loc.t("dashboard.zram_label").into());
     i18n.set_dashboard_network_label(loc.t("dashboard.network_label").into());
     i18n.set_dashboard_battery_label(loc.t("dashboard.battery_label").into());
 

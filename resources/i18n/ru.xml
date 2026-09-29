@@ -61,6 +61,7 @@
     <string name="dashboard.storage_filesystem">Файловая система</string>
     <string name="dashboard.cores_label">ядер</string>
     <string name="dashboard.swap_label">Swap</string>
+    <string name="dashboard.zram_label">zRAM</string>
     <string name="dashboard.network_label">Сеть:</string>
     <string name="dashboard.battery_label">Батарея:</string>
 

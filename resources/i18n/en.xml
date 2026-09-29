@@ -61,6 +61,7 @@
     <string name="dashboard.storage_filesystem">File System</string>
     <string name="dashboard.cores_label">Cores</string>
     <string name="dashboard.swap_label">Swap</string>
+    <string name="dashboard.zram_label">zRAM</string>
     <string name="dashboard.network_label">Network:</string>
     <string name="dashboard.battery_label">Battery:</string>
 

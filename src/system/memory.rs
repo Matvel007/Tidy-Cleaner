@@ -44,6 +44,21 @@ impl MemoryCollector {
             0.0
         };
 
+        let is_zram = if total_swap_bytes > 0 {
+            std::fs::read_to_string("/proc/swaps")
+                .map(|content| {
+                    let active_swaps: Vec<&str> = content
+                        .lines()
+                        .skip(1)
+                        .filter(|l| !l.trim().is_empty())
+                        .collect();
+                    !active_swaps.is_empty() && active_swaps.iter().all(|l| l.contains("zram"))
+                })
+                .unwrap_or(false)
+        } else {
+            false
+        };
+
         if self.history.len() >= HISTORY_CAPACITY {
             self.history.pop_front();
         }
@@ -57,6 +72,7 @@ impl MemoryCollector {
             used_swap_bytes,
             total_swap_bytes,
             swap_usage_percent,
+            is_zram,
             history: self.history.iter().copied().collect(),
         }
     }

@@ -51,6 +51,7 @@ export component AppWindow inherits Window {
 
     // Swap Metrics
     in-out property <bool> has_swap: false;
+    in-out property <bool> is_zram: false;
     in-out property <string> swap_used_str: "0.0 GB";
     in-out property <string> swap_total_str: "0.0 GB";
     in-out property <string> swap_usage_str: "0.0";
@@ -256,6 +257,7 @@ export component AppWindow inherits Window {
                     uptime_str: root.uptime_str;
 
                     has_swap: root.has_swap;
+                    is_zram: root.is_zram;
                     swap_used_str: root.swap_used_str;
                     swap_total_str: root.swap_total_str;
                     swap_usage_str: root.swap_usage_str;

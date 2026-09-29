@@ -254,6 +254,7 @@ fn apply_snapshot_to_ui(window: &AppWindow, snapshot: &system::SystemSnapshot) {
     // 7. Swap
     let has_swap = snapshot.memory.total_swap_bytes > 0;
     window.set_has_swap(has_swap);
+    window.set_is_zram(snapshot.memory.is_zram);
     if has_swap {
         let swap_used_gb = snapshot.memory.used_swap_bytes as f64 / (1024.0 * 1024.0 * 1024.0);
         let swap_total_gb = snapshot.memory.total_swap_bytes as f64 / (1024.0 * 1024.0 * 1024.0);

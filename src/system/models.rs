@@ -32,6 +32,7 @@ pub struct MemoryMetrics {
     pub used_swap_bytes: u64,
     pub total_swap_bytes: u64,
     pub swap_usage_percent: f32,
+    pub is_zram: bool,
     pub history: Vec<f32>,
 }
 
@@ -45,6 +46,7 @@ impl Default for MemoryMetrics {
             used_swap_bytes: 0,
             total_swap_bytes: 0,
             swap_usage_percent: 0.0,
+            is_zram: false,
             history: vec![0.0; 24],
         }
     }
