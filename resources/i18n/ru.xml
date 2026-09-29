@@ -60,6 +60,9 @@
     <string name="dashboard.storage_total">Всего</string>
     <string name="dashboard.storage_filesystem">Файловая система</string>
     <string name="dashboard.cores_label">ядер</string>
+    <string name="dashboard.swap_label">Swap</string>
+    <string name="dashboard.network_label">Сеть:</string>
+    <string name="dashboard.battery_label">Батарея:</string>
 
     <!-- Cleanup -->
     <string name="cleanup.title">Очистка системы</string>
@@ -81,7 +84,7 @@
     <string name="cleanup.clean_done_desc">Системные кэши и выбранные временные файлы успешно очищены.</string>
     <string name="cleanup.clean_selected_btn">Очистить</string>
     <string name="cleanup.items_found">объектов найдено</string>
-    <string name="cleanup.reclaimable">Можно освободить</string>
+    <string name="cleanup.reclaimable">Найдено</string>
     <string name="cleanup.selected">Выбрано</string>
     <string name="cleanup.nothing_found_title">Система чиста</string>
     <string name="cleanup.nothing_found_desc">Ненужный кэш и временные файлы не обнаружены.</string>
@@ -144,6 +147,12 @@
     <string name="cleanup.rule.shaders.desc">Скомпилированные графические шейдеры</string>
     <string name="cleanup.rule.coredumps">Дампы падений системы</string>
     <string name="cleanup.rule.coredumps.desc">Логи и дампы падений приложений systemd</string>
+    <string name="cleanup.rule.flatpak_apps">Кэш приложений Flatpak</string>
+    <string name="cleanup.rule.flatpak_apps.desc">Кэшированные файлы установленных приложений Flatpak</string>
+    <string name="cleanup.rule.journal">Журналы systemd пользователя</string>
+    <string name="cleanup.rule.journal.desc">Архивные журналы сессий systemd текущего пользователя</string>
+    <string name="cleanup.rule.orphaned">Осиротевшие пакеты</string>
+    <string name="cleanup.rule.orphaned.desc">Неиспользуемые пакеты-зависимости, оставшиеся после удаления программ</string>
 
     <!-- Applications -->
     <string name="applications.title">Установленные приложения</string>
@@ -223,4 +232,11 @@
     <string name="tooltip.create_shortcut">Создать ярлык на рабочем столе</string>
     <string name="tooltip.uninstall_app">Удалить приложение</string>
     <string name="tooltip.open_folder">Открыть папку</string>
+
+    <!-- Authentication Modal -->
+    <string name="auth.modal.title">Требуются права администратора</string>
+    <string name="auth.modal.confirm">Подтвердить</string>
+    <string name="auth.prompt.default">Введите ваш пароль для выполнения операции с правами администратора:</string>
+    <string name="auth.prompt.orphaned">Требуется пароль администратора для удаления осиротевших системных пакетов:</string>
+    <string name="auth.error.incorrect">Неверный пароль, попробуйте снова.</string>
 </resources>

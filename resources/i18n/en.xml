@@ -60,6 +60,9 @@
     <string name="dashboard.storage_total">Total</string>
     <string name="dashboard.storage_filesystem">File System</string>
     <string name="dashboard.cores_label">Cores</string>
+    <string name="dashboard.swap_label">Swap</string>
+    <string name="dashboard.network_label">Network:</string>
+    <string name="dashboard.battery_label">Battery:</string>
 
     <!-- Cleanup -->
     <string name="cleanup.title">System Cleanup</string>
@@ -81,7 +84,7 @@
     <string name="cleanup.clean_done_desc">System caches and selected temporary files were safely cleaned.</string>
     <string name="cleanup.clean_selected_btn">Clean</string>
     <string name="cleanup.items_found">items found</string>
-    <string name="cleanup.reclaimable">Reclaimable space</string>
+    <string name="cleanup.reclaimable">Found</string>
     <string name="cleanup.selected">Selected</string>
     <string name="cleanup.nothing_found_title">System is Clean</string>
     <string name="cleanup.nothing_found_desc">No redundant cache or leftover files were found.</string>
@@ -144,6 +147,12 @@
     <string name="cleanup.rule.shaders.desc">Compiled graphics pipeline shaders</string>
     <string name="cleanup.rule.coredumps">System Crash Dumps</string>
     <string name="cleanup.rule.coredumps.desc">Systemd application crash logs</string>
+    <string name="cleanup.rule.flatpak_apps">Flatpak Apps Cache</string>
+    <string name="cleanup.rule.flatpak_apps.desc">Cached files from user Flatpak applications</string>
+    <string name="cleanup.rule.journal">Systemd User Journal Logs</string>
+    <string name="cleanup.rule.journal.desc">Archived systemd user logs (safe vacuum)</string>
+    <string name="cleanup.rule.orphaned">Orphaned Packages</string>
+    <string name="cleanup.rule.orphaned.desc">Unused dependencies no longer needed by any installed application</string>
 
     <!-- Applications -->
     <string name="applications.title">Installed Applications</string>
@@ -223,4 +232,11 @@
     <string name="tooltip.create_shortcut">Create desktop shortcut</string>
     <string name="tooltip.uninstall_app">Uninstall application</string>
     <string name="tooltip.open_folder">Open folder</string>
+
+    <!-- Authentication Modal -->
+    <string name="auth.modal.title">Authentication Required</string>
+    <string name="auth.modal.confirm">Authenticate</string>
+    <string name="auth.prompt.default">Enter your administrator password:</string>
+    <string name="auth.prompt.orphaned">Administrator password required to remove orphaned system packages:</string>
+    <string name="auth.error.incorrect">Incorrect password, please try again.</string>
 </resources>

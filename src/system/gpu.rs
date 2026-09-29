@@ -56,15 +56,27 @@ impl GpuCollector {
         // 2. Try sysfs for AMD GPU (/sys/class/drm/card*/device/gpu_busy_percent)
         if let Ok(entries) = std::fs::read_dir("/sys/class/drm") {
             for entry in entries.flatten() {
-                let path = entry.path().join("device/gpu_busy_percent");
+                let dev_dir = entry.path().join("device");
+                let path = dev_dir.join("gpu_busy_percent");
                 if path.exists() {
                     if let Ok(content) = std::fs::read_to_string(&path) {
                         if let Ok(val) = content.trim().parse::<f32>() {
+                            let used_vram = std::fs::read_to_string(dev_dir.join("mem_info_vram_used"))
+                                .ok()
+                                .and_then(|s| s.trim().parse::<u64>().ok())
+                                .map(|b| b / (1024 * 1024))
+                                .unwrap_or(0);
+                            let total_vram = std::fs::read_to_string(dev_dir.join("mem_info_vram_total"))
+                                .ok()
+                                .and_then(|s| s.trim().parse::<u64>().ok())
+                                .map(|b| b / (1024 * 1024))
+                                .unwrap_or(0);
+
                             return GpuMetrics {
                                 usage_percent: val,
                                 name: "AMD GPU".to_string(),
-                                used_memory_mb: 0,
-                                total_memory_mb: 0,
+                                used_memory_mb: used_vram,
+                                total_memory_mb: total_vram,
                             };
                         }
                     }

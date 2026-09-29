@@ -272,6 +272,7 @@ async fn update_applications_view(win_weak: &slint::Weak<AppWindow>, service: &A
             w.set_applications_total_pages(total_pages as i32);
             w.set_applications_total_items(total_items as i32);
             w.set_applications_selected_count(selected_count);
+            w.set_applications_is_loading(false);
             w.set_applications_list(ModelRc::new(VecModel::from(ui_apps)));
         }
     });

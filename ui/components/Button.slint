@@ -7,11 +7,14 @@ export component Button inherits Rectangle {
     in property <bool> enabled: true;
     in property <length> custom_height: 36px;
     in property <length> custom_font_size: Typography.size_base;
+    in property <length> custom_padding_h: 14px;
     
     callback clicked();
 
     height: custom_height;
     border-radius: Theme.radius_md;
+    min-width: btn_layout.min-width;
+    horizontal-stretch: 0;
     clip: true;
 
     // Background color computation
@@ -31,9 +34,9 @@ export component Button inherits Rectangle {
     animate background { duration: 150ms; easing: ease-out; }
     animate border-color { duration: 150ms; easing: ease-out; }
 
-    HorizontalLayout {
-        padding-left: 14px;
-        padding-right: 14px;
+    btn_layout := HorizontalLayout {
+        padding-left: root.custom_padding_h;
+        padding-right: root.custom_padding_h;
         alignment: center;
 
         Text {

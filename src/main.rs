@@ -51,6 +51,17 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         }
     });
 
+    // Frameless window controls: maximize
+    let win_max = window.as_weak();
+    window.on_window_maximize(move || {
+        if let Some(w) = win_max.upgrade() {
+            w.window().with_winit_window(|winit_window| {
+                let is_max = winit_window.is_maximized();
+                winit_window.set_maximized(!is_max);
+            });
+        }
+    });
+
     // Frameless window controls: close
     let win_close = window.as_weak();
     window.on_window_close(move || {
@@ -78,7 +89,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                         let scale = slint_window.scale_factor() as f64;
                         let size = slint_window.size();
                         let titlebar_height = 40.0 * scale;
-                        let controls_zone = 80.0 * scale;
+                        let controls_zone = 120.0 * scale;
                         if y < titlebar_height && x < (size.width as f64 - controls_zone) {
                             slint_window.with_winit_window(|winit_window| {
                                 let _ = winit_window.drag_window();
@@ -239,6 +250,33 @@ fn apply_snapshot_to_ui(window: &AppWindow, snapshot: &system::SystemSnapshot) {
     window.set_kernel_version(snapshot.overview.kernel_version.clone().into());
     window.set_hostname(snapshot.overview.hostname.clone().into());
     window.set_uptime_str(snapshot.overview.uptime_formatted.clone().into());
+
+    // 7. Swap
+    let has_swap = snapshot.memory.total_swap_bytes > 0;
+    window.set_has_swap(has_swap);
+    if has_swap {
+        let swap_used_gb = snapshot.memory.used_swap_bytes as f64 / (1024.0 * 1024.0 * 1024.0);
+        let swap_total_gb = snapshot.memory.total_swap_bytes as f64 / (1024.0 * 1024.0 * 1024.0);
+        window.set_swap_used_str(format!("{:.1} GB", swap_used_gb).into());
+        window.set_swap_total_str(format!("{:.1} GB", swap_total_gb).into());
+        window.set_swap_usage_str(format!("{:.1}", snapshot.memory.swap_usage_percent).into());
+    }
+
+    // 8. Network
+    window.set_net_rx_str(snapshot.network.rx_speed_formatted.clone().into());
+    window.set_net_tx_str(snapshot.network.tx_speed_formatted.clone().into());
+    window.set_net_iface_str(snapshot.network.active_interface.clone().into());
+
+    // 9. Battery
+    window.set_has_battery(snapshot.battery.has_battery);
+    if snapshot.battery.has_battery {
+        let bat_text = if snapshot.battery.energy_watts > 0.0 {
+            format!("{:.0}% ({}, {:.1}W)", snapshot.battery.charge_percent, snapshot.battery.status, snapshot.battery.energy_watts)
+        } else {
+            format!("{:.0}% ({})", snapshot.battery.charge_percent, snapshot.battery.status)
+        };
+        window.set_battery_str(bat_text.into());
+    }
 }
 
 fn display_disk_name(disk: &system::DiskInfo) -> String {

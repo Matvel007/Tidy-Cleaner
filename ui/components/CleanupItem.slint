@@ -6,6 +6,7 @@ import { IconCleanup, IconFolder, IconCheck } from "Icons.slint";
 export component CleanupItemRow inherits Rectangle {
     in property <string> item_id: "";
     in property <string> name: "";
+    in property <string> description: "";
     in property <string> path_str: "";
     in property <string> size_str: "0 B";
     in property <string> risk_level_code: "safe";
@@ -15,7 +16,7 @@ export component CleanupItemRow inherits Rectangle {
     callback toggled(string);
     callback open_clicked(string);
 
-    height: 52px;
+    height: 56px;
     border-radius: Theme.radius_md;
     background: row_ta.has-hover ? Theme.surface_hover : Theme.surface;
     border-width: 1px;
@@ -25,10 +26,8 @@ export component CleanupItemRow inherits Rectangle {
     animate border-color { duration: 150ms; easing: ease-out; }
 
     row_ta := TouchArea {
-        pointer-event(event) => {
-            if event.kind == PointerEventKind.down {
-                root.toggled(root.item_id);
-            }
+        clicked => {
+            root.toggled(root.item_id);
         }
     }
 
@@ -79,7 +78,7 @@ export component CleanupItemRow inherits Rectangle {
                 }
             }
 
-            // Title & Monospace Path
+            // Title & Monospace Path & Description
             VerticalLayout {
                 alignment: center;
                 spacing: 2px;
@@ -118,13 +117,20 @@ export component CleanupItemRow inherits Rectangle {
                     }
                 }
 
+                if root.description != "": Text {
+                    text: root.description;
+                    font-family: Typography.font_family;
+                    font-size: 10px;
+                    color: Theme.text_secondary;
+                    overflow: elide;
+                }
+
                 Text {
                     text: root.path_str;
                     font-family: Typography.font_mono;
                     font-size: 10px;
                     color: Theme.text_muted;
                     overflow: elide;
-                    max-width: 440px;
                 }
             }
         }
@@ -186,15 +192,13 @@ export component CleanupItemRow inherits Rectangle {
                     x: (parent.width - self.width) / 2;
                     y: (parent.height - self.height) / 2;
                     icon_size: 14px;
-                    icon_color: Theme.text_secondary;
+                    icon_color: open_ta.has-hover ? Theme.text_primary : Theme.text_secondary;
                 }
 
                 open_ta := TouchArea {
                     mouse-cursor: pointer;
-                    pointer-event(event) => {
-                        if event.kind == PointerEventKind.down {
-                            root.open_clicked(root.item_id);
-                        }
+                    clicked => {
+                        root.open_clicked(root.item_id);
                     }
                 }
             }

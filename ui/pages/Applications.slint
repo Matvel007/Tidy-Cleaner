@@ -133,6 +133,30 @@ export component ApplicationsPage inherits Rectangle {
         }
 
         // MAIN CONTENT AREA
+        if root.is_loading && root.apps.length == 0: Card {
+            vertical-stretch: 1;
+
+            VerticalLayout {
+                alignment: center;
+                spacing: 14px;
+
+                IconApplications {
+                    x: (parent.width - self.width) / 2;
+                    icon_size: 48px;
+                    icon_color: Theme.accent;
+                }
+
+                Text {
+                    text: I18n.common_loading;
+                    font-family: Typography.font_family;
+                    font-size: Typography.size_lg;
+                    font-weight: Typography.weight_semibold;
+                    color: Theme.text_primary;
+                    horizontal-alignment: center;
+                }
+            }
+        }
+
         if root.apps.length == 0 && !root.is_loading: Card {
             vertical-stretch: 1;
 

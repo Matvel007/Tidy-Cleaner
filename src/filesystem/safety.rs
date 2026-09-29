@@ -27,52 +27,65 @@ pub fn validate_path_safety(path: &Path) -> Result<PathBuf, FSError> {
 
     let canonical = path.canonicalize().map_err(FSError::Io)?;
 
-    let path_str = canonical.to_string_lossy();
+    // 1. Direct roots protection: /, /tmp, /var/tmp, or forbidden roots
+    if canonical == Path::new("/") || canonical == Path::new("/tmp") || canonical == Path::new("/var/tmp") {
+        return Err(FSError::ForbiddenPath(canonical.display().to_string()));
+    }
 
-    // 1. Check exact match against forbidden roots
     for &forbidden in FORBIDDEN_ROOTS {
-        if path_str == forbidden {
-            return Err(FSError::ForbiddenPath(path_str.to_string()));
+        let fpath = Path::new(forbidden);
+        if canonical == fpath {
+            return Err(FSError::ForbiddenPath(canonical.display().to_string()));
         }
     }
 
-    // 2. Check if path is a top-level essential system directory
-    if path_str.starts_with("/etc")
-        || path_str.starts_with("/usr")
-        || path_str.starts_with("/bin")
-        || path_str.starts_with("/sbin")
-        || path_str.starts_with("/boot")
-        || path_str.starts_with("/lib")
-        || path_str.starts_with("/lib64")
-        || path_str.starts_with("/dev")
-        || path_str.starts_with("/proc")
-        || path_str.starts_with("/sys")
-        || path_str.starts_with("/run")
-        || path_str.starts_with("/var")
-        || path_str.starts_with("/opt")
-        || path_str.starts_with("/srv")
-        || path_str.starts_with("/root")
-    {
-        return Err(FSError::ForbiddenPath(path_str.to_string()));
-    }
+    // 2. Check if inside /tmp or /var/tmp (allowed temporary storage)
+    let is_inside_tmp = canonical.starts_with(Path::new("/tmp")) || canonical.starts_with(Path::new("/var/tmp"));
 
-    // 3. User Home boundary check (must be inside user's home or /tmp).
-    //    Fail closed: if HOME cannot be determined, refuse to delete.
+    // 3. User Home boundary check
     let home_dir = std::env::var_os("HOME")
         .map(PathBuf::from)
         .ok_or_else(|| FSError::OutOfBounds("HOME is not set; refusing deletion".to_string()))?;
     let home_canonical = home_dir.canonicalize().unwrap_or(home_dir);
 
-    // Exact home directory cannot be deleted
+    // Exact home directory cannot be modified
     if canonical == home_canonical {
-        return Err(FSError::ForbiddenPath(path_str.to_string()));
+        return Err(FSError::ForbiddenPath(canonical.display().to_string()));
     }
 
     let is_inside_home = canonical.starts_with(&home_canonical);
-    let is_inside_tmp = canonical.starts_with("/tmp") || canonical.starts_with("/var/tmp");
 
+    // Protected sensitive user directories inside $HOME
+    if is_inside_home {
+        let protected_user_subdirs = [
+            ".ssh", ".gnupg", ".bashrc", ".bash_profile", ".zshrc", ".profile",
+            ".config", ".local", ".local/share", "Documents", "Desktop",
+        ];
+        for sub in &protected_user_subdirs {
+            let protected_path = home_canonical.join(sub);
+            if canonical == protected_path {
+                return Err(FSError::ForbiddenPath(format!("Protected user location: {}", sub)));
+            }
+        }
+    }
+
+    // 4. If not inside allowed /tmp, reject critical system prefixes
+    if !is_inside_tmp {
+        let forbidden_prefixes = [
+            "/etc", "/usr", "/bin", "/sbin", "/boot", "/lib", "/lib64", "/lib32",
+            "/dev", "/proc", "/sys", "/run", "/var", "/opt", "/srv", "/root",
+        ];
+        for &prefix in &forbidden_prefixes {
+            let p = Path::new(prefix);
+            if canonical.starts_with(p) {
+                return Err(FSError::ForbiddenPath(canonical.display().to_string()));
+            }
+        }
+    }
+
+    // 5. Must be strictly inside home or inside allowed tmp
     if !is_inside_home && !is_inside_tmp {
-        return Err(FSError::OutOfBounds(path_str.to_string()));
+        return Err(FSError::OutOfBounds(canonical.display().to_string()));
     }
 
     Ok(canonical)

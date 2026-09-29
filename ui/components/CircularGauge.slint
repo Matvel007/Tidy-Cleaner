@@ -10,11 +10,11 @@ export component CircularGauge inherits Card {
     in property <color> ring_color: Theme.cpu_chart;
     in property <string> arc_path: "";
 
-    padding_horizontal: 16px;
-    padding_vertical: 14px;
+    padding_horizontal: 12px;
+    padding_vertical: 10px;
 
     VerticalLayout {
-        spacing: 8px;
+        spacing: 6px;
         alignment: center;
 
         // Card Header Title with safe spacing
@@ -44,8 +44,8 @@ export component CircularGauge inherits Card {
 
         // Circular Gauge Visual
         Rectangle {
-            width: 120px;
-            height: 120px;
+            width: 106px;
+            height: 106px;
 
             // Background Full Ring (fixed viewbox coordinates 0..120)
             Path {

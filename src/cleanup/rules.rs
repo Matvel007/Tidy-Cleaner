@@ -96,7 +96,7 @@ impl RuleRegistry {
                 name_key: "cleanup.rule.trash".to_string(),
                 description_key: "cleanup.rule.trash.desc".to_string(),
                 category: CleanupCategory::Trash,
-                base_path: data_dir.join("Trash/files"),
+                base_path: data_dir.join("Trash"),
                 is_deep_scan: false,
                 safety_level: RiskLevel::Warning,
             },
@@ -251,6 +251,36 @@ impl RuleRegistry {
                 base_path: data_dir.join("systemd/coredump"),
                 is_deep_scan: true,
                 safety_level: RiskLevel::Safe,
+            },
+            // 11. Individual Flatpak Apps Cache
+            CleanupRule {
+                id: "flatpak_apps".to_string(),
+                name_key: "cleanup.rule.flatpak_apps".to_string(),
+                description_key: "cleanup.rule.flatpak_apps.desc".to_string(),
+                category: CleanupCategory::ApplicationCache,
+                base_path: home.join(".var/app"),
+                is_deep_scan: false,
+                safety_level: RiskLevel::Safe,
+            },
+            // 12. Systemd User Journal Logs
+            CleanupRule {
+                id: "systemd_journal".to_string(),
+                name_key: "cleanup.rule.journal".to_string(),
+                description_key: "cleanup.rule.journal.desc".to_string(),
+                category: CleanupCategory::SystemLogs,
+                base_path: std::path::PathBuf::from("journalctl:--user"),
+                is_deep_scan: false,
+                safety_level: RiskLevel::Safe,
+            },
+            // 13. Orphaned Packages (Arch pacman -Qtdq / Debian autoremove / Flatpak unused)
+            CleanupRule {
+                id: "orphaned_packages".to_string(),
+                name_key: "cleanup.rule.orphaned".to_string(),
+                description_key: "cleanup.rule.orphaned.desc".to_string(),
+                category: CleanupCategory::PackageCache,
+                base_path: std::path::PathBuf::from("pkg:orphaned"),
+                is_deep_scan: false,
+                safety_level: RiskLevel::Warning,
             },
         ]
     }

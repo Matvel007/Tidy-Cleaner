@@ -8,6 +8,7 @@ import { CleanupPage, CleanupItemData } from "pages/Cleanup.slint";
 import { ApplicationsPage, AppCardData } from "pages/Applications.slint";
 import { StartupPage, StartupCardData } from "pages/Startup.slint";
 import { SettingsPage } from "pages/Settings.slint";
+import { PasswordModal } from "components/PasswordModal.slint";
 
 export { Theme, Typography, I18n, CleanupItemData, AppCardData, StartupCardData }
 
@@ -15,8 +16,8 @@ export component AppWindow inherits Window {
     title: I18n.app_title;
     icon: @image-url("../resources/icons/logo.svg");
     no-frame: true;
-    preferred-width: 960px;
-    preferred-height: 520px;
+    preferred-width: 800px;
+    preferred-height: 480px;
     min-width: 680px;
     min-height: 480px;
     background: Theme.background;
@@ -47,6 +48,19 @@ export component AppWindow inherits Window {
     in-out property <string> ram_available_str: "0.0 GB";
     in-out property <string> ram_total_str: "0.0 GB";
     in-out property <string> ram_arc_path: "";
+
+    // Swap Metrics
+    in-out property <bool> has_swap: false;
+    in-out property <string> swap_used_str: "0.0 GB";
+    in-out property <string> swap_total_str: "0.0 GB";
+    in-out property <string> swap_usage_str: "0.0";
+
+    // Network & Battery Metrics
+    in-out property <string> net_rx_str: "0 B/s";
+    in-out property <string> net_tx_str: "0 B/s";
+    in-out property <string> net_iface_str: "-";
+    in-out property <bool> has_battery: false;
+    in-out property <string> battery_str: "-";
 
     // Temperature Metrics
     in-out property <string> cpu_temp_str: "N/A";
@@ -98,6 +112,7 @@ export component AppWindow inherits Window {
     in-out property <int> applications_selected_count: 0;
     in-out property <string> applications_active_filter: "all";
     in-out property <[AppCardData]> applications_list: [];
+    in-out property <bool> applications_is_loading: true;
     in-out property <bool> applications_is_uninstalling: false;
     in-out property <float> applications_uninstall_progress: 0.0;
     in-out property <string> applications_uninstall_status_text: "";
@@ -109,6 +124,7 @@ export component AppWindow inherits Window {
 
     // Window callbacks
     callback window_minimize();
+    callback window_maximize();
     callback window_close();
 
     // Callbacks to Rust
@@ -117,6 +133,16 @@ export component AppWindow inherits Window {
     // Settings state
     in-out property <bool> settings_autostart_enabled: false;
     in-out property <bool> settings_start_minimized_enabled: false;
+
+    // Authentication Modal state
+    in-out property <bool> auth_modal_open: false;
+    in-out property <string> auth_prompt_text: "";
+    in-out property <string> auth_error_text: "";
+    in-out property <bool> auth_has_error: false;
+    in-out property <string> auth_password_input: "";
+
+    callback auth_submitted(string);
+    callback auth_cancelled();
 
     // Settings callbacks
     callback settings_theme_changed(int);
@@ -161,6 +187,7 @@ export component AppWindow inherits Window {
         TitleBar {
             title: I18n.app_title;
             minimize => { root.window_minimize(); }
+            maximize => { root.window_maximize(); }
             close => { root.window_close(); }
         }
 
@@ -227,6 +254,17 @@ export component AppWindow inherits Window {
                     kernel_version: root.kernel_version;
                     hostname: root.hostname;
                     uptime_str: root.uptime_str;
+
+                    has_swap: root.has_swap;
+                    swap_used_str: root.swap_used_str;
+                    swap_total_str: root.swap_total_str;
+                    swap_usage_str: root.swap_usage_str;
+
+                    net_rx_str: root.net_rx_str;
+                    net_tx_str: root.net_tx_str;
+                    net_iface_str: root.net_iface_str;
+                    has_battery: root.has_battery;
+                    battery_str: root.battery_str;
                 }
 
                 if root.current_page == 1: CleanupPage {
@@ -256,6 +294,7 @@ export component AppWindow inherits Window {
                     total_items: root.applications_total_items;
                     selected_count: root.applications_selected_count;
                     apps: root.applications_list;
+                    is_loading: root.applications_is_loading;
                     is_uninstalling: root.applications_is_uninstalling;
                     uninstall_progress: root.applications_uninstall_progress;
                     uninstall_status_text: root.applications_uninstall_status_text;
@@ -297,6 +336,23 @@ export component AppWindow inherits Window {
                     start_minimized_toggled(v) => { root.settings_start_minimized_toggled(v); }
                 }
             }
+        }
+    }
+
+    if root.auth_modal_open: PasswordModal {
+        is_open: true;
+        prompt_text: root.auth_prompt_text != "" ? root.auth_prompt_text : I18n.auth_prompt_default;
+        error_text: root.auth_error_text;
+        has_error: root.auth_has_error;
+        password_input <=> root.auth_password_input;
+        submitted(pwd) => {
+            root.auth_submitted(pwd);
+        }
+        cancelled => {
+            root.auth_modal_open = false;
+            root.auth_password_input = "";
+            root.auth_has_error = false;
+            root.auth_cancelled();
         }
     }
 }

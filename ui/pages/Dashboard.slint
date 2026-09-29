@@ -58,6 +58,19 @@ export component DashboardPage inherits VerticalLayout {
     in property <string> hostname: "localhost";
     in property <string> uptime_str: "0s";
 
+    // Swap Metrics
+    in property <bool> has_swap: false;
+    in property <string> swap_used_str: "0.0 GB";
+    in property <string> swap_total_str: "0.0 GB";
+    in property <string> swap_usage_str: "0.0";
+
+    // Network & Battery Metrics
+    in property <string> net_rx_str: "0 B/s";
+    in property <string> net_tx_str: "0 B/s";
+    in property <string> net_iface_str: "-";
+    in property <bool> has_battery: false;
+    in property <string> battery_str: "-";
+
     padding: 12px;
     spacing: 10px;
 
@@ -94,7 +107,7 @@ export component DashboardPage inherits VerticalLayout {
                     value_str: root.gpu_usage_str;
                     subtext_top: root.gpu_vram_str;
                     subtext_bottom: root.gpu_name;
-                    ring_color: #10b981;
+                    ring_color: Theme.gpu_chart;
                     arc_path: root.gpu_arc_path;
                 }
 
@@ -104,7 +117,7 @@ export component DashboardPage inherits VerticalLayout {
                     title: "RAM";
                     value_str: root.ram_usage_str;
                     subtext_top: root.ram_used_str + " / " + root.ram_total_str;
-                    subtext_bottom: I18n.dashboard_ram_available + ": " + root.ram_available_str;
+                    subtext_bottom: root.has_swap ? (I18n.dashboard_swap_label + ": " + root.swap_used_str + " (" + root.swap_usage_str + "%)") : (I18n.dashboard_ram_available + ": " + root.ram_available_str);
                     ring_color: Theme.ram_chart;
                     arc_path: root.ram_arc_path;
                 }
@@ -163,7 +176,7 @@ export component DashboardPage inherits VerticalLayout {
                 padding_vertical: 12px;
 
                 VerticalLayout {
-                    spacing: 10px;
+                    spacing: 6px;
                     alignment: space-between;
 
                     // Header Title
@@ -185,35 +198,52 @@ export component DashboardPage inherits VerticalLayout {
                         spacing: 8px;
                         alignment: start;
                         Text { text: "❯"; font-family: Typography.font_mono; font-size: Typography.size_xs; font-weight: Typography.weight_bold; color: Theme.accent; }
-                        Text { text: I18n.dashboard_os_label; font-family: Typography.font_mono; font-size: Typography.size_xs; font-weight: Typography.weight_bold; color: Theme.text_primary; width: 62px; }
+                        Text { text: I18n.dashboard_os_label; font-family: Typography.font_mono; font-size: Typography.size_xs; font-weight: Typography.weight_bold; color: Theme.text_primary; width: 56px; }
                         Text { text: root.os_name; font-family: Typography.font_family; font-size: Typography.size_xs; color: Theme.text_primary; overflow: elide; }
                     }
 
-                    // Line 2: Host
+                    // Line 2: Kernel
                     HorizontalLayout {
                         spacing: 8px;
                         alignment: start;
                         Text { text: "❯"; font-family: Typography.font_mono; font-size: Typography.size_xs; font-weight: Typography.weight_bold; color: Theme.accent; }
-                        Text { text: I18n.dashboard_host_label; font-family: Typography.font_mono; font-size: Typography.size_xs; font-weight: Typography.weight_bold; color: Theme.text_primary; width: 62px; }
-                        Text { text: root.hostname; font-family: Typography.font_mono; font-size: Typography.size_xs; color: Theme.text_primary; overflow: elide; }
-                    }
-
-                    // Line 3: Kernel
-                    HorizontalLayout {
-                        spacing: 8px;
-                        alignment: start;
-                        Text { text: "❯"; font-family: Typography.font_mono; font-size: Typography.size_xs; font-weight: Typography.weight_bold; color: Theme.accent; }
-                        Text { text: I18n.dashboard_kernel_label; font-family: Typography.font_mono; font-size: Typography.size_xs; font-weight: Typography.weight_bold; color: Theme.text_primary; width: 62px; }
+                        Text { text: I18n.dashboard_kernel_label; font-family: Typography.font_mono; font-size: Typography.size_xs; font-weight: Typography.weight_bold; color: Theme.text_primary; width: 56px; }
                         Text { text: root.kernel_version; font-family: Typography.font_mono; font-size: Typography.size_xs; color: Theme.text_primary; overflow: elide; }
                     }
 
-                    // Line 4: Uptime
+                    // Line 3: Uptime
                     HorizontalLayout {
                         spacing: 8px;
                         alignment: start;
                         Text { text: "❯"; font-family: Typography.font_mono; font-size: Typography.size_xs; font-weight: Typography.weight_bold; color: Theme.accent; }
-                        Text { text: I18n.dashboard_uptime_label; font-family: Typography.font_mono; font-size: Typography.size_xs; font-weight: Typography.weight_bold; color: Theme.text_primary; width: 62px; }
+                        Text { text: I18n.dashboard_uptime_label; font-family: Typography.font_mono; font-size: Typography.size_xs; font-weight: Typography.weight_bold; color: Theme.text_primary; width: 56px; }
                         Text { text: root.uptime_str; font-family: Typography.font_mono; font-size: Typography.size_xs; font-weight: Typography.weight_semibold; color: Theme.accent; }
+                    }
+
+                    // Line 4: Network
+                    HorizontalLayout {
+                        spacing: 8px;
+                        alignment: start;
+                        Text { text: "❯"; font-family: Typography.font_mono; font-size: Typography.size_xs; font-weight: Typography.weight_bold; color: Theme.accent; }
+                        Text { text: I18n.dashboard_network_label; font-family: Typography.font_mono; font-size: Typography.size_xs; font-weight: Typography.weight_bold; color: Theme.text_primary; width: 56px; }
+                        Text { text: "↓ " + root.net_rx_str + "  ↑ " + root.net_tx_str; font-family: Typography.font_mono; font-size: Typography.size_xs; color: Theme.text_primary; overflow: elide; }
+                    }
+
+                    // Line 5: Battery (or Host if no battery)
+                    if root.has_battery: HorizontalLayout {
+                        spacing: 8px;
+                        alignment: start;
+                        Text { text: "❯"; font-family: Typography.font_mono; font-size: Typography.size_xs; font-weight: Typography.weight_bold; color: Theme.accent; }
+                        Text { text: I18n.dashboard_battery_label; font-family: Typography.font_mono; font-size: Typography.size_xs; font-weight: Typography.weight_bold; color: Theme.text_primary; width: 56px; }
+                        Text { text: root.battery_str; font-family: Typography.font_mono; font-size: Typography.size_xs; color: Theme.text_primary; overflow: elide; }
+                    }
+
+                    if !root.has_battery: HorizontalLayout {
+                        spacing: 8px;
+                        alignment: start;
+                        Text { text: "❯"; font-family: Typography.font_mono; font-size: Typography.size_xs; font-weight: Typography.weight_bold; color: Theme.accent; }
+                        Text { text: I18n.dashboard_host_label; font-family: Typography.font_mono; font-size: Typography.size_xs; font-weight: Typography.weight_bold; color: Theme.text_primary; width: 56px; }
+                        Text { text: root.hostname; font-family: Typography.font_mono; font-size: Typography.size_xs; color: Theme.text_primary; overflow: elide; }
                     }
                 }
             }

@@ -36,6 +36,14 @@ impl MemoryCollector {
             0.0
         };
 
+        let total_swap_bytes = sys.total_swap();
+        let used_swap_bytes = sys.used_swap();
+        let swap_usage_percent = if total_swap_bytes > 0 {
+            (used_swap_bytes as f32 / total_swap_bytes as f32) * 100.0
+        } else {
+            0.0
+        };
+
         if self.history.len() >= HISTORY_CAPACITY {
             self.history.pop_front();
         }
@@ -46,6 +54,9 @@ impl MemoryCollector {
             total_bytes,
             available_bytes,
             usage_percent,
+            used_swap_bytes,
+            total_swap_bytes,
+            swap_usage_percent,
             history: self.history.iter().copied().collect(),
         }
     }

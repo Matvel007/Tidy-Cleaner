@@ -21,16 +21,15 @@ pub struct DesktopEntryRegistry;
 impl DesktopEntryRegistry {
     pub fn scan_system_entries() -> HashMap<String, DesktopEntryInfo> {
         let mut map = HashMap::new();
-        let home = std::env::var_os("HOME")
-            .map(PathBuf::from)
-            .unwrap_or_else(|| PathBuf::from("/home/anonim"));
-
-        let dirs = vec![
+        let mut dirs = vec![
             PathBuf::from("/usr/share/applications"),
-            home.join(".local/share/applications"),
             PathBuf::from("/var/lib/flatpak/exports/share/applications"),
-            home.join(".local/share/flatpak/exports/share/applications"),
         ];
+
+        if let Some(home) = std::env::var_os("HOME").map(PathBuf::from) {
+            dirs.push(home.join(".local/share/applications"));
+            dirs.push(home.join(".local/share/flatpak/exports/share/applications"));
+        }
 
         for dir in dirs {
             if !dir.exists() {
@@ -263,16 +262,16 @@ impl DesktopEntryRegistry {
             return Some(direct);
         }
 
-        let home = std::env::var_os("HOME")
-            .map(PathBuf::from)
-            .unwrap_or_else(|| PathBuf::from("/home/anonim"));
-
-        let icon_roots = [
+        let mut icon_roots = vec![
             PathBuf::from("/usr/share/icons"),
-            home.join(".local/share/icons"),
+            PathBuf::from("/usr/share/pixmaps"),
             PathBuf::from("/var/lib/flatpak/exports/share/icons"),
-            home.join(".local/share/flatpak/exports/share/icons"),
         ];
+
+        if let Some(home) = std::env::var_os("HOME").map(PathBuf::from) {
+            icon_roots.push(home.join(".local/share/icons"));
+            icon_roots.push(home.join(".local/share/flatpak/exports/share/icons"));
+        }
 
         let sizes = [
             "scalable", "64x64", "48x48", "128x128", "256x256", "32x32", "512x512", "apps",

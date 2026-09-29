@@ -62,6 +62,7 @@ impl CleanupService {
     pub async fn run_clean_async(
         &self,
         items_to_clean: Vec<CleanupItem>,
+        sudo_password: Option<String>,
     ) -> (
         UnboundedReceiver<ScanProgress>,
         tokio::task::JoinHandle<CleanupSummary>,
@@ -73,10 +74,11 @@ impl CleanupService {
         let cached_items = self.cached_items.clone();
 
         let handle = tokio::spawn(async move {
-            let summary = Cleaner::run_clean(items_to_clean, cancel_token, Some(tx)).await;
-            // Clear or update cached items after cleaning
+            let summary =
+                Cleaner::run_clean(items_to_clean, cancel_token, Some(tx), sudo_password).await;
+            // Clear only successfully cleaned items from cache
             let mut lock = cached_items.lock().await;
-            lock.retain(|i| !i.selected);
+            lock.retain(|i| !summary.cleaned_ids.contains(&i.id));
             summary
         });
 

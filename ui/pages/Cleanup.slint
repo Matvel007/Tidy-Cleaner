@@ -11,6 +11,7 @@ import { ScrollView } from "std-widgets.slint";
 export struct CleanupItemData {
     id: string,
     name: string,
+    description: string,
     path_str: string,
     size_str: string,
     risk_level_code: string,
@@ -48,47 +49,53 @@ export component CleanupPage inherits Rectangle {
         // TOP TOOLBAR
         HorizontalLayout {
             height: 36px;
-            spacing: 8px;
+            spacing: 6px;
             alignment: start;
 
             Button {
                 text: I18n.cleanup_scan_start;
                 variant: "primary";
-                custom_height: 36px;
+                custom_height: 34px;
+                custom_font_size: Typography.size_xs;
+                custom_padding_h: 12px;
                 enabled: !root.is_scanning && !root.is_cleaning;
                 clicked => { root.start_scan(); }
             }
 
             if root.has_scanned && root.items.length > 0 && !root.is_scanning && !root.is_cleaning: HorizontalLayout {
-                spacing: 8px;
+                spacing: 6px;
                 alignment: start;
 
                 Button {
                     text: I18n.cleanup_select_all;
                     variant: "secondary";
-                    custom_height: 36px;
+                    custom_height: 34px;
+                    custom_font_size: Typography.size_xs;
+                    custom_padding_h: 10px;
                     clicked => { root.select_all(); }
                 }
 
                 Button {
                     text: I18n.cleanup_deselect_all;
                     variant: "secondary";
-                    custom_height: 36px;
+                    custom_height: 34px;
+                    custom_font_size: Typography.size_xs;
+                    custom_padding_h: 10px;
                     clicked => { root.deselect_all(); }
                 }
 
-                // Compact Reclaimable Space Pill
+                // Compact Found Space Pill
                 Rectangle {
-                    height: 36px;
+                    height: 34px;
                     border-radius: Theme.radius_md;
                     background: Theme.surface;
                     border-width: 1px;
                     border-color: Theme.border;
 
                     HorizontalLayout {
-                        padding_left: 12px;
-                        padding_right: 12px;
-                        spacing: 6px;
+                        padding_left: 10px;
+                        padding_right: 10px;
+                        spacing: 4px;
                         alignment: center;
 
                         Text {
@@ -96,7 +103,7 @@ export component CleanupPage inherits Rectangle {
                             font-family: Typography.font_family;
                             font-size: Typography.size_xs;
                             font-weight: Typography.weight_medium;
-                            color: Theme.text_primary;
+                            color: Theme.text_secondary;
                             vertical-alignment: center;
                         }
 
@@ -111,11 +118,13 @@ export component CleanupPage inherits Rectangle {
                     }
                 }
 
-                // Clean Button placed immediately after Reclaimable Space pill
+                // Clean Button placed immediately next to stats pill
                 Button {
                     text: I18n.cleanup_clean_selected_btn + ": " + root.total_selected_size_str;
                     variant: "danger";
-                    custom_height: 36px;
+                    custom_height: 34px;
+                    custom_font_size: Typography.size_xs;
+                    custom_padding_h: 12px;
                     enabled: root.total_selected_items_count > 0;
                     clicked => { root.show_confirm_modal = true; }
                 }
@@ -263,6 +272,7 @@ export component CleanupPage inherits Rectangle {
                 for item in root.items: CleanupItemRow {
                     item_id: item.id;
                     name: item.name;
+                    description: item.description;
                     path_str: item.path_str;
                     size_str: item.size_str;
                     risk_level_code: item.risk_level_code;

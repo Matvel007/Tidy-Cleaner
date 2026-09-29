@@ -29,6 +29,9 @@ pub struct MemoryMetrics {
     pub total_bytes: u64,
     pub available_bytes: u64,
     pub usage_percent: f32,
+    pub used_swap_bytes: u64,
+    pub total_swap_bytes: u64,
+    pub swap_usage_percent: f32,
     pub history: Vec<f32>,
 }
 
@@ -39,6 +42,9 @@ impl Default for MemoryMetrics {
             total_bytes: 0,
             available_bytes: 0,
             usage_percent: 0.0,
+            used_swap_bytes: 0,
+            total_swap_bytes: 0,
+            swap_usage_percent: 0.0,
             history: vec![0.0; 24],
         }
     }
@@ -65,6 +71,26 @@ pub struct SystemOverview {
     pub uptime_formatted: String,
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct NetworkMetrics {
+    pub rx_bytes_per_sec: u64,
+    pub tx_bytes_per_sec: u64,
+    pub rx_speed_formatted: String,
+    pub tx_speed_formatted: String,
+    pub total_rx_bytes: u64,
+    pub total_tx_bytes: u64,
+    pub active_interface: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct BatteryMetrics {
+    pub has_battery: bool,
+    pub charge_percent: f32,
+    pub status: String,
+    pub energy_watts: f32,
+    pub health_percent: f32,
+}
+
 #[derive(Debug, Clone, Default)]
 pub struct SystemSnapshot {
     pub cpu: CpuMetrics,
@@ -73,6 +99,8 @@ pub struct SystemSnapshot {
     pub disks: Vec<DiskInfo>,
     pub temperature: TemperatureMetrics,
     pub overview: SystemOverview,
+    pub network: NetworkMetrics,
+    pub battery: BatteryMetrics,
 }
 
 pub fn generate_arc_svg_path(cx: f32, cy: f32, r: f32, percent: f32) -> String {

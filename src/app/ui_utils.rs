@@ -64,6 +64,9 @@ pub fn update_ui_strings(window: &AppWindow, state: &AppState) {
     i18n.set_dashboard_storage_total(loc.t("dashboard.storage_total").into());
     i18n.set_dashboard_storage_filesystem(loc.t("dashboard.storage_filesystem").into());
     i18n.set_dashboard_cores_label(loc.t("dashboard.cores_label").into());
+    i18n.set_dashboard_swap_label(loc.t("dashboard.swap_label").into());
+    i18n.set_dashboard_network_label(loc.t("dashboard.network_label").into());
+    i18n.set_dashboard_battery_label(loc.t("dashboard.battery_label").into());
 
     i18n.set_cleanup_title(loc.t("cleanup.title").into());
     i18n.set_cleanup_subtitle(loc.t("cleanup.subtitle").into());
@@ -176,6 +179,12 @@ pub fn update_ui_strings(window: &AppWindow, state: &AppState) {
     i18n.set_tooltip_create_shortcut(loc.t("tooltip.create_shortcut").into());
     i18n.set_tooltip_uninstall_app(loc.t("tooltip.uninstall_app").into());
     i18n.set_tooltip_open_folder(loc.t("tooltip.open_folder").into());
+
+    i18n.set_auth_modal_title(loc.t("auth.modal.title").into());
+    i18n.set_auth_modal_confirm(loc.t("auth.modal.confirm").into());
+    i18n.set_auth_prompt_default(loc.t("auth.prompt.default").into());
+    i18n.set_auth_prompt_orphaned(loc.t("auth.prompt.orphaned").into());
+    i18n.set_auth_error_incorrect(loc.t("auth.error.incorrect").into());
 
     window.set_current_lang(state.get_language().as_str().into());
 }

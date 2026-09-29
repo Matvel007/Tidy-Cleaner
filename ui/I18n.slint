@@ -59,6 +59,9 @@ export global I18n {
     in-out property <string> dashboard_storage_total: "Total";
     in-out property <string> dashboard_storage_filesystem: "File System";
     in-out property <string> dashboard_cores_label: "Cores";
+    in-out property <string> dashboard_swap_label: "Swap";
+    in-out property <string> dashboard_network_label: "Network:";
+    in-out property <string> dashboard_battery_label: "Battery:";
 
     // Cleanup
     in-out property <string> cleanup_title: "System Cleanup";
@@ -166,8 +169,15 @@ export global I18n {
     in-out property <string> settings_open_logs: "Open Logs Folder";
 
     // Tooltips
-    in-out property <string> tooltip_open_app: "Открыть приложение";
-    in-out property <string> tooltip_create_shortcut: "Создать ярлык на рабочем столе";
-    in-out property <string> tooltip_uninstall_app: "Удалить приложение";
-    in-out property <string> tooltip_open_folder: "Открыть папку";
+    in-out property <string> tooltip_open_app: "Launch Application";
+    in-out property <string> tooltip_create_shortcut: "Create Desktop Shortcut";
+    in-out property <string> tooltip_uninstall_app: "Uninstall Application";
+    in-out property <string> tooltip_open_folder: "Open in File Manager";
+
+    // Authentication Modal
+    in-out property <string> auth_modal_title: "Authentication Required";
+    in-out property <string> auth_modal_confirm: "Authenticate";
+    in-out property <string> auth_prompt_default: "Enter your administrator password:";
+    in-out property <string> auth_prompt_orphaned: "Administrator password required to remove orphaned system packages:";
+    in-out property <string> auth_error_incorrect: "Incorrect password, please try again.";
 }

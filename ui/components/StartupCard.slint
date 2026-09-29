@@ -131,7 +131,6 @@ export component StartupCard inherits Rectangle {
                     font-size: 10px;
                     color: Theme.text_muted;
                     overflow: elide;
-                    max-width: 460px;
                 }
             }
         }
@@ -209,10 +208,8 @@ export component StartupCard inherits Rectangle {
 
                 un_ta := TouchArea {
                     mouse-cursor: pointer;
-                    pointer-event(event) => {
-                        if event.kind == PointerEventKind.down {
-                            root.remove_clicked(root.item_id);
-                        }
+                    clicked => {
+                        root.remove_clicked(root.item_id);
                     }
                 }
             }

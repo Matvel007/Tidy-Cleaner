@@ -171,7 +171,6 @@ export component ApplicationCard inherits Rectangle {
                     font-size: 10px;
                     color: Theme.text_muted;
                     overflow: elide;
-                    max-width: 440px;
                 }
             }
         }
@@ -232,10 +231,8 @@ export component ApplicationCard inherits Rectangle {
                 sc_ta := TouchArea {
                     enabled: root.show_shortcut_btn;
                     mouse-cursor: pointer;
-                    pointer-event(event) => {
-                        if event.kind == PointerEventKind.down {
-                            root.create_shortcut_clicked(root.app_id);
-                        }
+                    clicked => {
+                        root.create_shortcut_clicked(root.app_id);
                     }
                 }
             }
@@ -257,10 +254,8 @@ export component ApplicationCard inherits Rectangle {
 
                 open_ta := TouchArea {
                     mouse-cursor: pointer;
-                    pointer-event(event) => {
-                        if event.kind == PointerEventKind.down {
-                            root.open_clicked(root.app_id);
-                        }
+                    clicked => {
+                        root.open_clicked(root.app_id);
                     }
                 }
             }
@@ -282,10 +277,8 @@ export component ApplicationCard inherits Rectangle {
 
                 un_ta := TouchArea {
                     mouse-cursor: pointer;
-                    pointer-event(event) => {
-                        if event.kind == PointerEventKind.down {
-                            root.uninstall_clicked(root.app_id);
-                        }
+                    clicked => {
+                        root.uninstall_clicked(root.app_id);
                     }
                 }
             }

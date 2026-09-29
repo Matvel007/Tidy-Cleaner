@@ -1,8 +1,10 @@
+pub mod battery;
 pub mod cpu;
 pub mod disks;
 pub mod gpu;
 pub mod memory;
 pub mod models;
+pub mod network;
 pub mod os_info;
 pub mod service;
 pub mod temperature;
