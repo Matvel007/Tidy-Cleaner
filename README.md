@@ -32,7 +32,7 @@
 
 ## ✨ Features
 
-- ⚡ **Real-Time Telemetry** — Circular gauges for CPU load, GPU utilization (NVIDIA, AMD & Intel integrated), RAM & Swap usage; network download/upload speed and battery status.
+- ⚡ **Real-Time Telemetry** — Circular gauges for CPU load, GPU utilization (NVIDIA, AMD & Intel integrated), RAM & zRAM/Swap usage; network download/upload speed and battery status.
 - 🌡️ **Thermal Monitoring** — Live CPU & GPU thermal indicators with adaptive status indicators (and a clean "N/A" fallback when no sensors are available).
 - 💾 **Multi-Disk Analytics** — Individual disk cards with live capacity, free space tracking, and file system details (Btrfs, ext4, etc.).
 - 💻 **System Info Overview** — Terminal-inspired compact overview showing OS, Host, Kernel version, uptime, and network stats.
