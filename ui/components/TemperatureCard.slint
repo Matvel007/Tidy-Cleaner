@@ -16,10 +16,11 @@ export component TemperatureCard inherits Card {
         spacing: 12px;
         alignment: space-between;
 
-        // Header Title (exact same height and alignment as CircularGauge)
+        // Header Title
         HorizontalLayout {
             height: 18px;
-            alignment: space-between;
+            alignment: start;
+            spacing: 6px;
 
             Text {
                 text: I18n.dashboard_temperature;
@@ -31,10 +32,10 @@ export component TemperatureCard inherits Card {
             }
 
             Text {
-                text: "°C";
+                text: "(°C)";
                 font-family: Typography.font_mono;
                 font-size: Typography.size_xs;
-                color: Theme.text_primary;
+                color: Theme.text_secondary;
                 vertical-alignment: center;
             }
         }
@@ -44,13 +45,15 @@ export component TemperatureCard inherits Card {
             spacing: 6px;
 
             HorizontalLayout {
-                alignment: space-between;
+                alignment: start;
+                spacing: 8px;
                 Text {
                     text: "CPU";
                     font-family: Typography.font_family;
                     font-size: Typography.size_xs;
                     font-weight: Typography.weight_semibold;
                     color: Theme.text_primary;
+                    width: 36px;
                 }
                 Text {
                     text: root.cpu_temp_val > 0 ? root.cpu_temp_str + " °C" : "N/A";
@@ -88,13 +91,15 @@ export component TemperatureCard inherits Card {
             spacing: 6px;
 
             HorizontalLayout {
-                alignment: space-between;
+                alignment: start;
+                spacing: 8px;
                 Text {
                     text: "GPU";
                     font-family: Typography.font_family;
                     font-size: Typography.size_xs;
                     font-weight: Typography.weight_semibold;
                     color: Theme.text_primary;
+                    width: 36px;
                 }
                 Text {
                     text: root.gpu_temp_val > 0 ? root.gpu_temp_str + " °C" : "N/A";

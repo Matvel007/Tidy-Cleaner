@@ -32,15 +32,15 @@
 
 ## ✨ Features
 
-- ⚡ **Real-Time Telemetry** — Circular gauges for CPU load, GPU utilization (NVIDIA, AMD & Intel integrated), and RAM usage with live frequency and core count.
+- ⚡ **Real-Time Telemetry** — Circular gauges for CPU load, GPU utilization (NVIDIA, AMD & Intel integrated), RAM & Swap usage; network download/upload speed and battery status.
 - 🌡️ **Thermal Monitoring** — Live CPU & GPU thermal indicators with adaptive status indicators (and a clean "N/A" fallback when no sensors are available).
 - 💾 **Multi-Disk Analytics** — Individual disk cards with live capacity, free space tracking, and file system details (Btrfs, ext4, etc.).
-- 💻 **System Info Overview** — Terminal-inspired compact overview showing OS, Host, Kernel version, and system Uptime.
-- 🧹 **Intelligent Cleanup** — Safe scan of cache, temporary files, browser/build/package caches with risk levels (Safe, Warning, Dangerous) and mandatory user review before deletion. Select All only ever selects safe items.
+- 💻 **System Info Overview** — Terminal-inspired compact overview showing OS, Host, Kernel version, uptime, and network stats.
+- 🧹 **Intelligent Cleanup** — Safe scan of browser/build/package caches, Flatpak app caches, user systemd journal, and **orphaned packages** with risk levels (Safe, Warning, Dangerous), in-app administrator authentication dialog, and mandatory user review before deletion.
 - 📦 **Applications Manager** — Unified management for Pacman, AUR, Flatpak, Snap, APT (dpkg) and RPM (dnf/zypper): **uninstall packages**, open apps, and **create desktop shortcuts**.
 - 🚀 **Startup Manager** — Inspect, enable, disable, remove, and **add autostart applications** conforming to Freedesktop standards (works on any desktop environment).
 - ⚙️ **Settings** — Dark / Light / System theme, English / Русский language, launch on system startup, and start minimized.
-- 🎨 **Premium Frameless UI** — Custom draggable titlebar, butter-smooth sidebar animations, resizable window, and adaptive dark/light themes.
+- 🎨 **Premium Frameless UI** — Custom draggable titlebar, maximize/restore support, butter-smooth animations, compact size, and adaptive dark/light themes.
 - 🌍 **Strict Localization** — External XML localization architecture supporting English and Russian seamlessly.
 
 ---
@@ -116,7 +116,7 @@ cargo test
 
 ## ❤️ Made with AI
 
-> Программа делается с помощью **Gemini 3.7 Flash** и **DeepSeek v4 Pro** ❤️
+> Программа делается с помощью **Gemini 3.8 Flash** и **DeepSeek 4.1 Flash** ❤️
 
 ---
 
