@@ -1,5 +1,6 @@
 use super::models::AppSettings;
 use crate::filesystem::xdg::get_config_dir;
+use crate::startup::desktop::DesktopAutostart;
 use anyhow::{Context, Result};
 use std::fs;
 use std::path::PathBuf;
@@ -38,12 +39,7 @@ impl SettingsStorage {
         let json = serde_json::to_string_pretty(settings)
             .context("Failed to serialize settings to JSON")?;
 
-        // Atomic write: temp file + rename so a crash never truncates config.json.
-        let tmp_path = path.with_extension("json.tmp");
-        fs::write(&tmp_path, json)
-            .with_context(|| format!("Failed to write settings to {:?}", tmp_path))?;
-        fs::rename(&tmp_path, &path)
-            .with_context(|| format!("Failed to move settings to {:?}", path))?;
+        DesktopAutostart::atomic_write_file(&path, &json)?;
 
         tracing::debug!("Settings saved to {:?}", path);
         Ok(())

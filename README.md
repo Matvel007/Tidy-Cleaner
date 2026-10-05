@@ -6,7 +6,7 @@
 
 **Modern, ultra-fast, and premium Linux system manager & cleaner built in Rust with Slint.**
 
-[![Rust](https://img.shields.io/badge/Rust-1.80%2B-orange.svg?logo=rust)](https://www.rust-lang.org/)
+[![Rust](https://img.shields.io/badge/Rust-1.92%2B-orange.svg?logo=rust)](https://www.rust-lang.org/)
 [![Slint UI](https://img.shields.io/badge/Slint-1.17-blue.svg?logo=slint)](https://slint.dev/)
 [![Platform](https://img.shields.io/badge/Platform-Linux-green.svg?logo=linux)](https://kernel.org)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
@@ -78,15 +78,23 @@ paru -S tidy-cleaner-git
 
 ### Prerequisites
 
-Ensure you have Rust and Cargo installed:
+Tidy Cleaner requires **Rust 1.92+** (pinned by the locked Slint 1.17 toolchain).
+System package managers often ship an older compiler, so using
+[rustup](https://rustup.rs/) is recommended:
 
 ```bash
-# Arch Linux / CachyOS / Manjaro
+# Any distribution (recommended)
+curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+
+# Arch Linux / CachyOS / Manjaro (rolling, usually new enough)
 sudo pacman -S rust cargo
 
-# Debian / Ubuntu
+# Debian / Ubuntu (may be too old; prefer rustup)
 sudo apt update && sudo apt install cargo
 ```
+
+Fontconfig is required at runtime and is declared by the AUR packages:
+`sudo pacman -S fontconfig` (already present on most desktop installs).
 
 ### Run in Development Mode
 

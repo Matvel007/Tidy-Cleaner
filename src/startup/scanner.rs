@@ -24,7 +24,7 @@ impl StartupScanner {
                             {
                                 item.icon_path =
                                     DesktopEntryRegistry::resolve_icon_path(&item.icon);
-                                items_map.insert(item.file_name.clone(), item);
+                                items_map.entry(item.file_name.clone()).or_insert(item);
                             }
                         }
                     }
@@ -44,6 +44,11 @@ impl StartupScanner {
                         if let Ok(mut item) =
                             DesktopAutostart::parse_file(&path, StartupSource::User)
                         {
+                            if let Some(system) = items_map.get(&item.file_name) {
+                                item.source = system.source;
+                                item.id = system.id.clone();
+                                item.file_path = system.file_path.clone();
+                            }
                             item.icon_path = DesktopEntryRegistry::resolve_icon_path(&item.icon);
                             items_map.insert(item.file_name.clone(), item);
                         }

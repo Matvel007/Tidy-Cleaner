@@ -99,6 +99,7 @@ pub enum ScanPhase {
     Completed,
     Cleaning,
     Cancelled,
+    Partial,
 }
 
 #[allow(dead_code)]

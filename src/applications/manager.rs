@@ -1,5 +1,5 @@
 use crate::applications::aur::AurProvider;
-use crate::applications::desktop_entries::DesktopEntryRegistry;
+use crate::applications::desktop_entries::{parse_exec, DesktopEntryRegistry};
 use crate::applications::dpkg::DpkgProvider;
 use crate::applications::flatpak::FlatpakProvider;
 use crate::applications::models::{ApplicationItem, PackageSource};
@@ -34,12 +34,34 @@ impl ApplicationManager {
     }
 
     pub fn list_all(&self) -> Vec<ApplicationItem> {
+        self.list_all_preserving(&[])
+    }
+
+    pub fn with_providers(providers: Vec<Arc<dyn PackageManagerProvider>>) -> Self {
+        Self { providers }
+    }
+
+    pub fn list_all_preserving(&self, previous: &[ApplicationItem]) -> Vec<ApplicationItem> {
         let mut all_apps = Vec::new();
 
         for provider in &self.providers {
-            if provider.is_available() {
-                if let Ok(apps) = provider.list_installed() {
+            match provider.list_installed() {
+                Ok(mut apps) => {
+                    for app in &mut apps {
+                        if let Some(old) = previous.iter().find(|old| old.id == app.id) {
+                            app.selected = old.selected;
+                        }
+                    }
                     all_apps.extend(apps);
+                }
+                Err(error) => {
+                    tracing::warn!(provider = provider.name(), %error, "Provider inventory retained after discovery failure");
+                    all_apps.extend(
+                        previous
+                            .iter()
+                            .filter(|app| app.source == provider.source())
+                            .cloned(),
+                    );
                 }
             }
         }
@@ -97,6 +119,7 @@ impl ApplicationManager {
         page_size: usize,
     ) -> (Vec<ApplicationItem>, usize, usize) {
         let total_items = apps.len();
+        let page_size = page_size.max(1);
         let total_pages = if total_items == 0 {
             1
         } else {
@@ -105,7 +128,7 @@ impl ApplicationManager {
 
         let current_page = page.clamp(1, total_pages);
         let start_idx = (current_page - 1) * page_size;
-        let end_idx = (start_idx + page_size).min(total_items);
+        let end_idx = start_idx.saturating_add(page_size).min(total_items);
 
         let slice = if start_idx < total_items {
             apps[start_idx..end_idx].to_vec()
@@ -118,21 +141,78 @@ impl ApplicationManager {
 
     pub fn launch_app(app: &ApplicationItem) -> Result<()> {
         if let Some(ref desktop_path) = app.desktop_file_path {
-            if Command::new("gtk-launch")
+            // A launched app may inherit the launcher's pipes. Wait only for
+            // gtk-launch, with no capture pipes and without killing the app's
+            // process group when the short-lived launcher finishes.
+            if let Ok(mut child) = Command::new("gtk-launch")
                 .arg(desktop_path.file_name().unwrap_or_default())
+                .stdin(std::process::Stdio::null())
+                .stdout(std::process::Stdio::null())
+                .stderr(std::process::Stdio::null())
                 .spawn()
-                .is_ok()
             {
-                return Ok(());
+                let start = std::time::Instant::now();
+                loop {
+                    match child.try_wait() {
+                        Ok(Some(status)) => {
+                            if status.success() {
+                                return Ok(());
+                            }
+                            break;
+                        }
+                        Ok(None) if start.elapsed() < crate::process::SCAN_TIMEOUT => {
+                            std::thread::sleep(std::time::Duration::from_millis(10));
+                        }
+                        _ => {
+                            let _ = child.kill();
+                            let _ = child.wait();
+                            break;
+                        }
+                    }
+                }
             }
         }
 
         if let Some(ref exec) = app.exec_cmd {
-            let parts: Vec<&str> = exec.split_whitespace().collect();
-            if let Some((bin, args)) = parts.split_first() {
-                Command::new(bin).args(args).spawn()?;
-                return Ok(());
+            let desktop_path = app
+                .desktop_file_path
+                .as_deref()
+                .unwrap_or_else(|| std::path::Path::new(""));
+            let parts = parse_exec(exec, &app.name, &app.icon, desktop_path)?;
+            let info = app
+                .desktop_file_path
+                .as_ref()
+                .map(|p| DesktopEntryRegistry::parse_desktop_file(p))
+                .transpose()?;
+            if info
+                .as_ref()
+                .map(|i| i.terminal || i.dbus_activatable)
+                .unwrap_or(false)
+            {
+                return Err(std::io::Error::new(std::io::ErrorKind::Unsupported, "desktop activation requires a successful desktop launcher (Terminal/DBusActivatable)").into());
             }
+            let (bin, args) = parts.split_first().unwrap();
+            let mut command = Command::new(bin);
+            command
+                .args(args)
+                .stdin(std::process::Stdio::null())
+                .stdout(std::process::Stdio::null())
+                .stderr(std::process::Stdio::null());
+            if let Some(path) = info.and_then(|i| i.working_directory) {
+                command.current_dir(path);
+            }
+            let mut child = command.spawn()?;
+            std::thread::sleep(std::time::Duration::from_millis(100));
+            if let Some(status) = child.try_wait()? {
+                if !status.success() {
+                    bail!("{}: {}", bin, status);
+                }
+            } else {
+                std::thread::spawn(move || {
+                    let _ = child.wait();
+                });
+            }
+            return Ok(());
         }
 
         bail!("No executable command found for application")

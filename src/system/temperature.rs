@@ -1,5 +1,5 @@
 use serde::{Deserialize, Serialize};
-use std::process::Command;
+use std::path::Path;
 use sysinfo::Components;
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
@@ -11,17 +11,9 @@ pub struct TemperatureMetrics {
 pub struct TemperatureCollector;
 
 impl TemperatureCollector {
-    pub fn collect() -> TemperatureMetrics {
-        TemperatureMetrics {
-            cpu_temp_c: Self::collect_cpu_temp(),
-            gpu_temp_c: Self::collect_gpu_temp(),
-        }
-    }
-
-    fn collect_cpu_temp() -> Option<f32> {
+    pub fn collect_cpu_temp() -> Option<f32> {
         let components = Components::new_with_refreshed_list();
-        let mut max_temp = 0.0f32;
-        let mut found = false;
+        let mut max_temp: Option<f32> = None;
 
         for c in components.list() {
             let label = c.label().to_lowercase();
@@ -32,21 +24,24 @@ impl TemperatureCollector {
                 || label.contains("tctl")
             {
                 if let Some(t) = c.temperature() {
-                    if t > max_temp {
-                        max_temp = t;
-                        found = true;
+                    if (-40.0..=150.0).contains(&t) {
+                        max_temp = Some(max_temp.map_or(t, |previous| previous.max(t)));
                     }
                 }
             }
         }
 
-        if found && max_temp > 0.0 {
-            return Some(max_temp);
+        if max_temp.is_some() {
+            return max_temp;
         }
 
-        // Fallback: /sys/class/thermal/thermal_zone*/temp, preferring CPU-type zones.
-        if let Ok(entries) = std::fs::read_dir("/sys/class/thermal") {
-            let mut fallback: Option<f32> = None;
+        Self::read_cpu_thermal(Path::new("/sys/class/thermal"))
+    }
+
+    pub fn read_cpu_thermal(root: &Path) -> Option<f32> {
+        // Only CPU-type zones qualify; an ACPI/board sensor is not CPU temperature.
+        if let Ok(entries) = std::fs::read_dir(root) {
+            let mut max_temp: Option<f32> = None;
             for entry in entries.flatten() {
                 let zone_dir = entry.path();
                 let zone_type = std::fs::read_to_string(zone_dir.join("type"))
@@ -57,81 +52,37 @@ impl TemperatureCollector {
                     || zone_type.contains("k10temp")
                     || zone_type.contains("core");
 
+                if !is_cpu_zone {
+                    continue;
+                }
                 let temp_path = zone_dir.join("temp");
                 if let Ok(content) = std::fs::read_to_string(temp_path) {
                     if let Ok(raw) = content.trim().parse::<f32>() {
-                        let val = if raw > 1000.0 { raw / 1000.0 } else { raw };
-                        if (15.0..115.0).contains(&val) {
-                            if is_cpu_zone {
-                                return Some(val);
-                            }
-                            if fallback.is_none() {
-                                fallback = Some(val);
-                            }
+                        let val = raw / 1000.0;
+                        if (-40.0..=150.0).contains(&val) {
+                            max_temp = Some(max_temp.map_or(val, |previous| previous.max(val)));
                         }
                     }
                 }
             }
-            if fallback.is_some() {
-                return fallback;
-            }
+            return max_temp;
         }
 
         None
     }
 
-    fn collect_gpu_temp() -> Option<f32> {
-        // 1. Try NVIDIA-SMI
-        if let Ok(output) = Command::new("nvidia-smi")
-            .args([
-                "--query-gpu=temperature.gpu",
-                "--format=csv,noheader,nounits",
-            ])
-            .output()
-        {
-            if output.status.success() {
-                let text = String::from_utf8_lossy(&output.stdout);
-                if let Some(line) = text.lines().next() {
-                    if let Ok(temp) = line.trim().parse::<f32>() {
-                        return Some(temp);
-                    }
-                }
-            }
-        }
-
-        // 2. Try sysfs hwmon for AMD GPU
-        if let Ok(entries) = std::fs::read_dir("/sys/class/drm") {
-            for entry in entries.flatten() {
-                let path = entry.path().join("device/hwmon");
-                if let Ok(sub) = std::fs::read_dir(path) {
-                    for h in sub.flatten() {
-                        let t_path = h.path().join("temp1_input");
-                        if let Ok(content) = std::fs::read_to_string(t_path) {
-                            if let Ok(raw) = content.trim().parse::<f32>() {
-                                return Some(if raw > 1000.0 { raw / 1000.0 } else { raw });
-                            }
-                        }
-                    }
-                }
-            }
-        }
-
-        None
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_temperature_collector() {
-        let t = TemperatureCollector::collect();
-        if let Some(cpu) = t.cpu_temp_c {
-            assert!((0.0..=120.0).contains(&cpu));
-        }
-        if let Some(gpu) = t.gpu_temp_c {
-            assert!((0.0..=120.0).contains(&gpu));
-        }
+    pub fn read_gpu_hwmon(device: &Path) -> Option<f32> {
+        let mut entries: Vec<_> = std::fs::read_dir(device.join("hwmon"))
+            .ok()?
+            .flatten()
+            .collect();
+        entries.sort_by_key(|entry| entry.file_name());
+        entries.into_iter().find_map(|entry| {
+            std::fs::read_to_string(entry.path().join("temp1_input"))
+                .ok()
+                .and_then(|s| s.trim().parse::<f32>().ok())
+                .map(|raw| raw / 1000.0)
+                .filter(|v| (-40.0..=150.0).contains(v))
+        })
     }
 }

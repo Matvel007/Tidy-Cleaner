@@ -28,8 +28,8 @@ pub fn setup_applications_handlers(
             let as_svc = as_svc.clone();
             let win_handle = win_handle.clone();
             let q = query.to_string();
+            as_svc.set_search_query(q);
             tokio::spawn(async move {
-                as_svc.set_search_query(q).await;
                 update_applications_view(&win_handle, &as_svc).await;
             });
         });
@@ -42,9 +42,9 @@ pub fn setup_applications_handlers(
         window.on_applications_page_change(move |page_num| {
             let as_svc = as_svc.clone();
             let win_handle = win_handle.clone();
-            let page = (page_num as usize).max(1);
+            let page = page_num.max(1) as usize;
+            as_svc.set_page(page);
             tokio::spawn(async move {
-                as_svc.set_page(page).await;
                 update_applications_view(&win_handle, &as_svc).await;
             });
         });
@@ -96,12 +96,15 @@ pub fn setup_applications_handlers(
     // 6. Open application
     {
         let as_svc = app_service.clone();
+        let win_handle = window.as_weak();
         window.on_applications_open_app(move |app_id| {
             let as_svc = as_svc.clone();
+            let win = win_handle.clone();
             let id = app_id.to_string();
             tokio::spawn(async move {
                 if let Err(err) = as_svc.launch_app_by_id(&id).await {
                     tracing::error!("Failed to launch application {}: {}", id, err);
+                    show_status(&win, format!("{err:#}"));
                 }
             });
         });
@@ -110,16 +113,22 @@ pub fn setup_applications_handlers(
     // 6b. Create desktop shortcut
     {
         let as_svc = app_service.clone();
+        let win_handle = window.as_weak();
+        let st = state.clone();
         window.on_applications_create_shortcut(move |app_id| {
             let as_svc = as_svc.clone();
+            let win = win_handle.clone();
+            let success = st.localization.t("applications.shortcut_created");
             let id = app_id.to_string();
             tokio::spawn(async move {
                 match as_svc.create_shortcut_by_id(&id).await {
                     Ok(path) => {
                         tracing::info!("Created desktop shortcut at {:?}", path);
+                        show_status(&win, success);
                     }
                     Err(err) => {
                         tracing::error!("Failed to create desktop shortcut for {}: {}", id, err);
+                        show_status(&win, format!("{err:#}"));
                     }
                 }
             });
@@ -137,6 +146,14 @@ pub fn setup_applications_handlers(
             let id = app_id.to_string();
 
             if let Some(w) = win_handle.upgrade() {
+                if w.get_applications_is_uninstalling() {
+                    w.set_applications_uninstall_status_text(
+                        std::io::Error::from(std::io::ErrorKind::WouldBlock)
+                            .to_string()
+                            .into(),
+                    );
+                    return;
+                }
                 w.set_applications_is_uninstalling(true);
                 w.set_applications_uninstall_progress(0.0);
                 w.set_applications_uninstall_status_text(
@@ -144,37 +161,14 @@ pub fn setup_applications_handlers(
                 );
             }
 
+            let completion = format!("{}: 100%", st.localization.t("applications.uninstalling"));
             tokio::spawn(async move {
-                let (mut rx, handle) = as_svc.uninstall_single_app(&id).await;
-                let win_progress = win_handle.clone();
-
-                tokio::spawn(async move {
-                    while let Ok(progress) = rx.recv().await {
-                        let win = win_progress.clone();
-                        let _ = slint::invoke_from_event_loop(move || {
-                            if let Some(w) = win.upgrade() {
-                                w.set_applications_uninstall_progress(progress.percent);
-                                let status = match &progress.error_message {
-                                    Some(err) => err.clone(),
-                                    None => progress.current_app.to_string(),
-                                };
-                                w.set_applications_uninstall_status_text(status.into());
-                                if progress.is_completed {
-                                    w.set_applications_is_uninstalling(false);
-                                }
-                            }
-                        });
-                    }
-                });
-
-                let _ = handle.await;
-                as_svc.refresh_installed_apps().await;
-                let win_done = win_handle.clone();
-                let _ = slint::invoke_from_event_loop(move || {
-                    if let Some(w) = win_done.upgrade() {
-                        w.set_applications_is_uninstalling(false);
-                    }
-                });
+                finish_uninstall(
+                    &win_handle,
+                    as_svc.uninstall_single_app(&id).await,
+                    completion,
+                )
+                .await;
                 update_applications_view(&win_handle, &as_svc).await;
             });
         });
@@ -190,6 +184,14 @@ pub fn setup_applications_handlers(
             let win_handle = win_handle.clone();
 
             if let Some(w) = win_handle.upgrade() {
+                if w.get_applications_is_uninstalling() {
+                    w.set_applications_uninstall_status_text(
+                        std::io::Error::from(std::io::ErrorKind::WouldBlock)
+                            .to_string()
+                            .into(),
+                    );
+                    return;
+                }
                 w.set_applications_is_uninstalling(true);
                 w.set_applications_uninstall_progress(0.0);
                 w.set_applications_uninstall_status_text(
@@ -197,50 +199,82 @@ pub fn setup_applications_handlers(
                 );
             }
 
+            let completion = format!("{}: 100%", st.localization.t("applications.uninstalling"));
             tokio::spawn(async move {
-                let (mut rx, handle) = as_svc.uninstall_selected().await;
-                let win_progress = win_handle.clone();
-
-                tokio::spawn(async move {
-                    while let Ok(progress) = rx.recv().await {
-                        let win = win_progress.clone();
-                        let _ = slint::invoke_from_event_loop(move || {
-                            if let Some(w) = win.upgrade() {
-                                w.set_applications_uninstall_progress(progress.percent);
-                                let status = match &progress.error_message {
-                                    Some(err) => err.clone(),
-                                    None => progress.current_app.to_string(),
-                                };
-                                w.set_applications_uninstall_status_text(status.into());
-                                if progress.is_completed {
-                                    w.set_applications_is_uninstalling(false);
-                                }
-                            }
-                        });
-                    }
-                });
-
-                let _ = handle.await;
-                as_svc.refresh_installed_apps().await;
-                let win_done = win_handle.clone();
-                let _ = slint::invoke_from_event_loop(move || {
-                    if let Some(w) = win_done.upgrade() {
-                        w.set_applications_is_uninstalling(false);
-                    }
-                });
+                finish_uninstall(&win_handle, as_svc.uninstall_selected().await, completion).await;
                 update_applications_view(&win_handle, &as_svc).await;
             });
         });
     }
 }
 
+fn show_status(win: &slint::Weak<AppWindow>, text: String) {
+    let win = win.clone();
+    let _ = slint::invoke_from_event_loop(move || {
+        if let Some(w) = win.upgrade() {
+            w.set_applications_uninstall_status_text(text.into());
+        }
+    });
+}
+
+async fn finish_uninstall(
+    win: &slint::Weak<AppWindow>,
+    task: anyhow::Result<crate::applications::service::UninstallTask>,
+    completion: String,
+) {
+    let result = match task {
+        Ok((mut rx, handle)) => {
+            loop {
+                match rx.recv().await {
+                    Ok(progress) if progress.is_completed => break,
+                    Ok(progress) => {
+                        let win = win.clone();
+                        let _ = slint::invoke_from_event_loop(move || {
+                            if let Some(w) = win.upgrade() {
+                                w.set_applications_uninstall_progress(progress.percent);
+                                w.set_applications_uninstall_status_text(
+                                    progress.current_app.into(),
+                                );
+                            }
+                        });
+                    }
+                    Err(tokio::sync::broadcast::error::RecvError::Lagged(_)) => continue,
+                    Err(_) => break,
+                }
+            }
+            match handle.await {
+                Ok(result) => result,
+                Err(error) => Err(error.into()),
+            }
+        }
+        Err(error) => Err(error),
+    };
+    let status = match result {
+        Ok(()) => completion,
+        Err(error) => format!("{error:#}"),
+    };
+    let win = win.clone();
+    let _ = slint::invoke_from_event_loop(move || {
+        if let Some(w) = win.upgrade() {
+            w.set_applications_uninstall_progress(100.0);
+            w.set_applications_uninstall_status_text(status.into());
+            w.set_applications_is_uninstalling(false);
+        }
+    });
+}
+
 async fn update_applications_view(win_weak: &slint::Weak<AppWindow>, service: &ApplicationService) {
+    let revision = service.view_revision();
+    let generation = revision.load(std::sync::atomic::Ordering::SeqCst);
     let (items, current_page, total_pages, total_items) = service.get_current_view().await;
     let selected = service.get_selected_apps().await;
     let selected_count = selected.len() as i32;
 
     let win_handle = win_weak.clone();
     let _ = slint::invoke_from_event_loop(move || {
+        if revision.load(std::sync::atomic::Ordering::SeqCst) != generation {
+            return;
+        }
         if let Some(w) = win_handle.upgrade() {
             let mut ui_apps = Vec::new();
             for item in items {

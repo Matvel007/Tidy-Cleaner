@@ -1,272 +1,305 @@
 use crate::applications::manager::ApplicationManager;
 use crate::applications::models::{ApplicationItem, PackageSource, UninstallProgress};
 use anyhow::Result;
-use std::sync::atomic::{AtomicBool, Ordering};
-use std::sync::Arc;
+use std::sync::atomic::{AtomicU64, Ordering};
+use std::sync::{Arc, Mutex as ViewMutex};
 use tokio::sync::{broadcast, Mutex};
 
-#[allow(dead_code)]
+struct ViewState {
+    query: String,
+    source: Option<PackageSource>,
+    offset: usize,
+    page_size: usize,
+}
+
+pub type UninstallTask = (
+    broadcast::Receiver<UninstallProgress>,
+    tokio::task::JoinHandle<Result<()>>,
+);
+
 pub struct ApplicationService {
     manager: ApplicationManager,
     cached_apps: Arc<Mutex<Vec<ApplicationItem>>>,
-    search_query: Arc<Mutex<String>>,
-    source_filter: Arc<Mutex<Option<PackageSource>>>,
-    current_page: Arc<Mutex<usize>>,
-    page_size: usize,
-    cancel_token: Arc<AtomicBool>,
+    view: ViewMutex<ViewState>,
+    revision: Arc<AtomicU64>,
+    operation: Arc<Mutex<()>>,
 }
 
 #[allow(dead_code)]
 impl ApplicationService {
     pub fn new() -> Self {
+        Self::with_manager(ApplicationManager::new())
+    }
+
+    pub fn with_manager(manager: ApplicationManager) -> Self {
         Self {
-            manager: ApplicationManager::new(),
+            manager,
             cached_apps: Arc::new(Mutex::new(Vec::new())),
-            search_query: Arc::new(Mutex::new(String::new())),
-            source_filter: Arc::new(Mutex::new(None)),
-            current_page: Arc::new(Mutex::new(1)),
-            page_size: 10,
-            cancel_token: Arc::new(AtomicBool::new(false)),
+            view: ViewMutex::new(ViewState {
+                query: String::new(),
+                source: None,
+                offset: 0,
+                page_size: 10,
+            }),
+            revision: Arc::new(AtomicU64::new(0)),
+            operation: Arc::new(Mutex::new(())),
         }
+    }
+
+    pub fn view_revision(&self) -> Arc<AtomicU64> {
+        self.revision.clone()
     }
 
     pub async fn refresh_installed_apps(&self) -> Vec<ApplicationItem> {
-        let manager_clone = self.manager.clone();
-        let apps = match tokio::time::timeout(
-            std::time::Duration::from_secs(120),
-            tokio::task::spawn_blocking(move || manager_clone.list_all()),
-        )
-        .await
-        {
-            Ok(Ok(apps)) => apps,
-            Ok(Err(e)) => {
-                tracing::error!("Package discovery task failed: {}", e);
-                Vec::new()
-            }
-            Err(_) => {
-                tracing::warn!("Package discovery timed out after 120s");
-                Vec::new()
-            }
+        let Ok(guard) = self.operation.clone().try_lock_owned() else {
+            return self.get_cached_apps().await;
         };
-
-        let mut cached = self.cached_apps.lock().await;
-        *cached = apps.clone();
-        apps
+        let manager = self.manager.clone();
+        let previous = self.get_cached_apps().await;
+        // The guard lives in the blocking task, even if an async caller is aborted.
+        let result = tokio::task::spawn_blocking(move || {
+            let apps = manager.list_all_preserving(&previous);
+            (guard, apps)
+        })
+        .await;
+        match result {
+            Ok((_guard, apps)) => {
+                *self.cached_apps.lock().await = apps.clone();
+                self.revision.fetch_add(1, Ordering::SeqCst);
+                apps
+            }
+            Err(error) => {
+                tracing::error!(%error, "Package discovery worker failed; inventory retained");
+                self.get_cached_apps().await
+            }
+        }
     }
 
     pub async fn get_cached_apps(&self) -> Vec<ApplicationItem> {
-        let cached = self.cached_apps.lock().await;
-        cached.clone()
+        self.cached_apps.lock().await.clone()
     }
 
-    pub async fn set_search_query(&self, query: String) {
-        let mut q = self.search_query.lock().await;
-        *q = query;
-        let mut page = self.current_page.lock().await;
-        *page = 1;
+    pub fn set_search_query(&self, query: String) {
+        let mut view = self.view.lock().unwrap();
+        view.query = query;
+        view.offset = 0;
+        self.revision.fetch_add(1, Ordering::SeqCst);
     }
 
-    pub async fn set_source_filter(&self, source: Option<PackageSource>) {
-        let mut sf = self.source_filter.lock().await;
-        *sf = source;
-        let mut page = self.current_page.lock().await;
-        *page = 1;
+    pub fn set_source_filter(&self, source: Option<PackageSource>) {
+        let mut view = self.view.lock().unwrap();
+        view.source = source;
+        view.offset = 0;
+        self.revision.fetch_add(1, Ordering::SeqCst);
     }
 
-    pub async fn set_page(&self, page: usize) {
-        let mut p = self.current_page.lock().await;
-        *p = page;
+    pub fn set_page(&self, page: usize) {
+        let mut view = self.view.lock().unwrap();
+        view.offset = page.max(1).saturating_sub(1).saturating_mul(view.page_size);
+        self.revision.fetch_add(1, Ordering::SeqCst);
+    }
+
+    pub fn set_page_size(&self, size: usize) {
+        let mut view = self.view.lock().unwrap();
+        view.page_size = size.clamp(1, 200);
+        // Retain the exact first visible offset, not just the page that contains it.
+        self.revision.fetch_add(1, Ordering::SeqCst);
     }
 
     pub async fn toggle_app_selection(&self, app_id: &str) {
-        let mut cached = self.cached_apps.lock().await;
-        for app in cached.iter_mut() {
-            if app.id == app_id {
-                app.selected = !app.selected;
-                break;
-            }
+        if let Some(app) = self
+            .cached_apps
+            .lock()
+            .await
+            .iter_mut()
+            .find(|a| a.id == app_id)
+        {
+            app.selected = !app.selected;
         }
+        self.revision.fetch_add(1, Ordering::SeqCst);
     }
-
     pub async fn select_all(&self) {
-        let mut cached = self.cached_apps.lock().await;
-        for app in cached.iter_mut() {
+        for app in self.cached_apps.lock().await.iter_mut() {
             app.selected = true;
         }
+        self.revision.fetch_add(1, Ordering::SeqCst);
     }
-
     pub async fn deselect_all(&self) {
-        let mut cached = self.cached_apps.lock().await;
-        for app in cached.iter_mut() {
+        for app in self.cached_apps.lock().await.iter_mut() {
             app.selected = false;
         }
+        self.revision.fetch_add(1, Ordering::SeqCst);
     }
-
     pub async fn get_current_view(&self) -> (Vec<ApplicationItem>, usize, usize, usize) {
         let cached = self.cached_apps.lock().await;
-        let query = self.search_query.lock().await;
-        let source = *self.source_filter.lock().await;
-        let page = *self.current_page.lock().await;
-
-        let filtered = ApplicationManager::filter_apps(&cached, &query, source);
-        let total_items = filtered.len();
-        let (paged, current_page, total_pages) =
-            ApplicationManager::paginate_apps(&filtered, page, self.page_size);
-
-        (paged, current_page, total_pages, total_items)
+        let mut view = self.view.lock().unwrap();
+        let filtered = ApplicationManager::filter_apps(&cached, &view.query, view.source);
+        let total = filtered.len();
+        let pages = total.div_ceil(view.page_size).max(1);
+        if view.offset >= total {
+            view.offset = pages.saturating_sub(1) * view.page_size;
+        }
+        let end = view.offset.saturating_add(view.page_size).min(total);
+        (
+            filtered[view.offset..end].to_vec(),
+            view.offset / view.page_size + 1,
+            pages,
+            total,
+        )
     }
-
     pub async fn get_selected_apps(&self) -> Vec<ApplicationItem> {
-        let cached = self.cached_apps.lock().await;
-        cached.iter().filter(|a| a.selected).cloned().collect()
+        self.cached_apps
+            .lock()
+            .await
+            .iter()
+            .filter(|a| a.selected)
+            .cloned()
+            .collect()
     }
 
-    pub async fn launch_app_by_id(&self, app_id: &str) -> Result<()> {
-        let cached = self.cached_apps.lock().await;
-        if let Some(app) = cached.iter().find(|a| a.id == app_id) {
-            ApplicationManager::launch_app(app)?;
-        }
-        Ok(())
+    async fn find_app(&self, id: &str) -> Result<ApplicationItem> {
+        self.cached_apps
+            .lock()
+            .await
+            .iter()
+            .find(|a| a.id == id)
+            .cloned()
+            .ok_or_else(|| std::io::Error::new(std::io::ErrorKind::NotFound, id.to_string()).into())
     }
 
-    pub async fn create_shortcut_by_id(&self, app_id: &str) -> Result<std::path::PathBuf> {
-        let cached = self.cached_apps.lock().await;
-        if let Some(app) = cached.iter().find(|a| a.id == app_id) {
-            return ApplicationManager::create_shortcut(app);
-        }
-        anyhow::bail!("Application not found")
+    pub async fn launch_app_by_id(&self, id: &str) -> Result<()> {
+        let guard = self
+            .operation
+            .clone()
+            .try_lock_owned()
+            .map_err(|_| std::io::Error::from(std::io::ErrorKind::WouldBlock))?;
+        let app = self.find_app(id).await?;
+        tokio::task::spawn_blocking(move || {
+            let _guard = guard;
+            ApplicationManager::launch_app(&app)
+        })
+        .await?
+    }
+    pub async fn create_shortcut_by_id(&self, id: &str) -> Result<std::path::PathBuf> {
+        let guard = self
+            .operation
+            .clone()
+            .try_lock_owned()
+            .map_err(|_| std::io::Error::from(std::io::ErrorKind::WouldBlock))?;
+        let app = self.find_app(id).await?;
+        tokio::task::spawn_blocking(move || {
+            let _guard = guard;
+            ApplicationManager::create_shortcut(&app)
+        })
+        .await?
+    }
+    pub async fn get_details_by_id(&self, id: &str) -> Result<Option<String>> {
+        let guard = self
+            .operation
+            .clone()
+            .try_lock_owned()
+            .map_err(|_| std::io::Error::from(std::io::ErrorKind::WouldBlock))?;
+        let app = self.find_app(id).await?;
+        let manager = self.manager.clone();
+        tokio::task::spawn_blocking(move || {
+            let _guard = guard;
+            manager.get_details(&app)
+        })
+        .await?
     }
 
-    pub async fn get_details_by_id(&self, app_id: &str) -> Result<Option<String>> {
-        let cached = self.cached_apps.lock().await;
-        if let Some(app) = cached.iter().find(|a| a.id == app_id) {
-            return self.manager.get_details(app);
-        }
-        Ok(None)
-    }
-
-    pub async fn uninstall_selected(
-        &self,
-    ) -> (
-        broadcast::Receiver<UninstallProgress>,
-        tokio::task::JoinHandle<Result<()>>,
-    ) {
-        let (tx, rx) = broadcast::channel(100);
+    pub async fn uninstall_selected(&self) -> Result<UninstallTask> {
+        let guard = self
+            .operation
+            .clone()
+            .try_lock_owned()
+            .map_err(|_| std::io::Error::from(std::io::ErrorKind::WouldBlock))?;
         let selected = self.get_selected_apps().await;
-        let cancel_token = self.cancel_token.clone();
-        cancel_token.store(false, Ordering::SeqCst);
+        if selected.is_empty() {
+            return Err(std::io::Error::from(std::io::ErrorKind::InvalidInput).into());
+        }
+        Ok(self.start_uninstall(selected, guard))
+    }
+    pub async fn uninstall_single_app(&self, id: &str) -> Result<UninstallTask> {
+        let guard = self
+            .operation
+            .clone()
+            .try_lock_owned()
+            .map_err(|_| std::io::Error::from(std::io::ErrorKind::WouldBlock))?;
+        let app = self.find_app(id).await?;
+        Ok(self.start_uninstall(vec![app], guard))
+    }
 
+    fn start_uninstall(
+        &self,
+        apps: Vec<ApplicationItem>,
+        guard: tokio::sync::OwnedMutexGuard<()>,
+    ) -> UninstallTask {
+        let (tx, rx) = broadcast::channel(100);
+        let manager = self.manager.clone();
+        let cached = self.cached_apps.clone();
+        let revision = self.revision.clone();
+        let total = apps.len();
         let handle = tokio::spawn(async move {
-            let total = selected.len();
-            let manager = ApplicationManager::new();
-
-            for (idx, app) in selected.iter().enumerate() {
-                if cancel_token.load(Ordering::SeqCst) {
-                    let _ = tx.send(UninstallProgress {
-                        current_app: "Cancelled".to_string(),
-                        current_index: idx,
-                        total_apps: total,
-                        percent: (idx as f32) / (total as f32) * 100.0,
-                        is_completed: true,
-                        error_message: Some("Uninstall cancelled by user".to_string()),
-                    });
-                    break;
-                }
-
-                let _ = tx.send(UninstallProgress {
-                    current_app: app.name.clone(),
-                    current_index: idx + 1,
-                    total_apps: total,
-                    percent: (idx as f32) / (total as f32) * 100.0,
-                    is_completed: false,
-                    error_message: None,
-                });
-
-                let app_clone = app.clone();
-                let mgr = manager.clone();
-                let result =
-                    tokio::task::spawn_blocking(move || mgr.uninstall_app(&app_clone)).await;
-
-                if let Ok(Err(err)) = result {
-                    tracing::error!("Failed to uninstall {}: {}", app.name, err);
-                    let _ = tx.send(UninstallProgress {
+            let progress = tx.clone();
+            let worker = tokio::task::spawn_blocking(move || {
+                // Keep the lock through cache reconciliation/completion, returning
+                // it only after the blocking mutation has actually finished.
+                let mut removed = Vec::new();
+                let mut errors = Vec::new();
+                for (index, app) in apps.iter().enumerate() {
+                    let _ = progress.send(UninstallProgress {
                         current_app: app.name.clone(),
-                        current_index: idx + 1,
+                        current_index: index + 1,
                         total_apps: total,
-                        percent: (idx as f32 + 1.0) / (total as f32) * 100.0,
+                        percent: index as f32 / total as f32 * 100.0,
                         is_completed: false,
-                        error_message: Some(format!("{}: {}", app.name, err)),
+                        error_message: None,
                     });
+                    match manager.uninstall_app(app) {
+                        Ok(()) => removed.push(app.id.clone()),
+                        Err(error) => errors.push(format!("{}: {error:#}", app.name)),
+                    }
                 }
-            }
-
+                (guard, removed, errors)
+            })
+            .await;
+            let (guard, removed, errors) = match worker {
+                Ok(values) => values,
+                Err(error) => {
+                    let detail = error.to_string();
+                    let _ = tx.send(UninstallProgress {
+                        current_app: String::new(),
+                        current_index: total,
+                        total_apps: total,
+                        percent: 100.0,
+                        is_completed: true,
+                        error_message: Some(detail.clone()),
+                    });
+                    return Err(error.into());
+                }
+            };
+            cached.lock().await.retain(|app| !removed.contains(&app.id));
+            revision.fetch_add(1, Ordering::SeqCst);
+            let detail = if errors.is_empty() {
+                None
+            } else {
+                Some(errors.join("\n"))
+            };
             let _ = tx.send(UninstallProgress {
                 current_app: String::new(),
                 current_index: total,
                 total_apps: total,
                 percent: 100.0,
                 is_completed: true,
-                error_message: None,
+                error_message: detail.clone(),
             });
-
-            Ok(())
-        });
-
-        (rx, handle)
-    }
-
-    pub async fn uninstall_single_app(
-        &self,
-        app_id: &str,
-    ) -> (
-        broadcast::Receiver<UninstallProgress>,
-        tokio::task::JoinHandle<Result<()>>,
-    ) {
-        let (tx, rx) = broadcast::channel(100);
-        let cached = self.cached_apps.lock().await;
-        let target_app = cached.iter().find(|a| a.id == app_id).cloned();
-        drop(cached);
-
-        let handle = tokio::spawn(async move {
-            if let Some(app) = target_app {
-                let _ = tx.send(UninstallProgress {
-                    current_app: app.name.clone(),
-                    current_index: 1,
-                    total_apps: 1,
-                    percent: 50.0,
-                    is_completed: false,
-                    error_message: None,
-                });
-
-                let manager = ApplicationManager::new();
-                let app_clone = app.clone();
-                let result =
-                    tokio::task::spawn_blocking(move || manager.uninstall_app(&app_clone)).await;
-
-                if let Ok(Err(err)) = result {
-                    tracing::error!("Failed to uninstall {}: {}", app.name, err);
-                    let _ = tx.send(UninstallProgress {
-                        current_app: app.name.clone(),
-                        current_index: 1,
-                        total_apps: 1,
-                        percent: 100.0,
-                        is_completed: false,
-                        error_message: Some(format!("{}: {}", app.name, err)),
-                    });
-                }
-
-                let _ = tx.send(UninstallProgress {
-                    current_app: String::new(),
-                    current_index: 1,
-                    total_apps: 1,
-                    percent: 100.0,
-                    is_completed: true,
-                    error_message: None,
-                });
+            drop(guard);
+            match detail {
+                Some(detail) => Err(anyhow::anyhow!(detail)),
+                None => Ok(()),
             }
-            Ok(())
         });
-
         (rx, handle)
     }
 }

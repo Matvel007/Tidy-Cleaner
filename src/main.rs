@@ -4,6 +4,7 @@ mod cleanup;
 mod filesystem;
 mod localization;
 mod logging;
+mod process;
 mod settings;
 mod startup;
 mod system;
@@ -29,6 +30,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let monitor = Arc::new(SystemMonitorService::new());
     let cleanup_service = Arc::new(cleanup::CleanupService::new());
     let window = AppWindow::new()?;
+    let (monitor_stop, monitor_stop_rx) = tokio::sync::watch::channel(false);
     window.set_is_kde(system::OsInfoCollector::is_kde());
 
     // Wire Subsystems
@@ -51,24 +53,15 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         }
     });
 
-    // Frameless window controls: maximize
-    let win_max = window.as_weak();
-    window.on_window_maximize(move || {
-        if let Some(w) = win_max.upgrade() {
-            w.window().with_winit_window(|winit_window| {
-                let is_max = winit_window.is_maximized();
-                winit_window.set_maximized(!is_max);
-            });
-        }
-    });
-
     // Frameless window controls: close
     let win_close = window.as_weak();
+    let close_stop = monitor_stop.clone();
     window.on_window_close(move || {
+        let _ = close_stop.send(true);
         if let Some(w) = win_close.upgrade() {
             let _ = w.window().hide();
-            std::process::exit(0);
         }
+        let _ = slint::quit_event_loop();
     });
 
     // Frameless window dragging
@@ -89,7 +82,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                         let scale = slint_window.scale_factor() as f64;
                         let size = slint_window.size();
                         let titlebar_height = 40.0 * scale;
-                        let controls_zone = 120.0 * scale;
+                        // Only minimize and close remain (two 32px buttons plus padding).
+                        let controls_zone = 88.0 * scale;
                         if y < titlebar_height && x < (size.width as f64 - controls_zone) {
                             slint_window.with_winit_window(|winit_window| {
                                 let _ = winit_window.drag_window();
@@ -108,26 +102,72 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     apply_theme(&window, current_theme);
     update_ui_strings(&window, &state);
 
-    // Initial sampling of system metrics
-    let initial_snapshot = monitor.sample_snapshot();
-    apply_snapshot_to_ui(&window, &initial_snapshot);
-
-    // Spawn async background monitoring loop on Tokio runtime
-    let win_handle_monitor = window.as_weak();
-    let monitor_clone = monitor.clone();
-    tokio::spawn(async move {
-        let mut interval = tokio::time::interval(Duration::from_millis(1000));
-        loop {
-            interval.tick().await;
-            let snapshot = monitor_clone.sample_snapshot();
-            let handle = win_handle_monitor.clone();
-            let _ = slint::invoke_from_event_loop(move || {
-                if let Some(win) = handle.upgrade() {
-                    apply_snapshot_to_ui(&win, &snapshot);
-                }
-            });
-        }
+    // Start sampling only after the window is shown and the event loop is running.
+    let (ready, ready_rx) = tokio::sync::watch::channel(false);
+    slint::Timer::single_shot(Duration::ZERO, move || {
+        let _ = ready.send(true);
     });
+    let mut monitor_tasks = Vec::new();
+    for gpu_only in [false, true] {
+        let monitor = monitor.clone();
+        let win_handle = window.as_weak();
+        let localization = state.localization.clone();
+        let mut stop = monitor_stop_rx.clone();
+        let stop_sender = monitor_stop.clone();
+        let mut ready = ready_rx.clone();
+        monitor_tasks.push(tokio::spawn(async move {
+            tokio::select! {
+                _ = stop.wait_for(|stopped| *stopped) => return,
+                started = ready.wait_for(|started| *started) => {
+                    if started.is_err() { return; }
+                }
+            }
+            let mut interval = tokio::time::interval(Duration::from_secs(1));
+            interval.set_missed_tick_behavior(tokio::time::MissedTickBehavior::Skip);
+            loop {
+                tokio::select! {
+                    _ = stop.wait_for(|stopped| *stopped) => break,
+                    _ = interval.tick() => {}
+                }
+                let sampler = monitor.clone();
+                let result = tokio::task::spawn_blocking(move || {
+                    if gpu_only {
+                        sampler.sample_gpu();
+                        None
+                    } else {
+                        Some(sampler.sample_snapshot())
+                    }
+                })
+                .await;
+                if *stop.borrow() {
+                    break;
+                }
+                let snapshot = match result {
+                    Ok(snapshot) => snapshot,
+                    Err(error) => {
+                        tracing::error!(%error, "Telemetry sampler failed");
+                        break;
+                    }
+                };
+                let handle = win_handle.clone();
+                let stop_sender = stop_sender.clone();
+                let localization = localization.clone();
+                if slint::invoke_from_event_loop(move || {
+                    if let Some(win) = handle.upgrade() {
+                        if let Some(snapshot) = snapshot {
+                            apply_snapshot_to_ui(&win, &snapshot, &localization);
+                        }
+                    } else {
+                        let _ = stop_sender.send(true);
+                    }
+                })
+                .is_err()
+                {
+                    break;
+                }
+            }
+        }));
+    }
 
     // Page navigation
     let state_clone = state.clone();
@@ -150,11 +190,20 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         });
     }
 
-    window.run()?;
+    let result = window.run();
+    let _ = monitor_stop.send(true);
+    for task in monitor_tasks {
+        let _ = task.await;
+    }
+    result?;
     Ok(())
 }
 
-fn apply_snapshot_to_ui(window: &AppWindow, snapshot: &system::SystemSnapshot) {
+fn apply_snapshot_to_ui(
+    window: &AppWindow,
+    snapshot: &system::SystemSnapshot,
+    localization: &localization::LocalizationService,
+) {
     // 1. CPU
     window.set_cpu_usage_str(format!("{:.1}", snapshot.cpu.usage_percent).into());
     window.set_cpu_cores_str(format!("{}", snapshot.cpu.core_count).into());
@@ -164,7 +213,14 @@ fn apply_snapshot_to_ui(window: &AppWindow, snapshot: &system::SystemSnapshot) {
     window.set_cpu_arc_path(cpu_arc.into());
 
     // 2. GPU
-    window.set_gpu_usage_str(format!("{:.1}", snapshot.gpu.usage_percent).into());
+    window.set_gpu_usage_str(
+        if snapshot.gpu.usage_available {
+            format!("{:.1}", snapshot.gpu.usage_percent)
+        } else {
+            "N/A".to_string()
+        }
+        .into(),
+    );
     window.set_gpu_name(
         if snapshot.gpu.name.is_empty() {
             "N/A".to_string()
@@ -173,7 +229,7 @@ fn apply_snapshot_to_ui(window: &AppWindow, snapshot: &system::SystemSnapshot) {
         }
         .into(),
     );
-    let gpu_vram_formatted = if snapshot.gpu.total_memory_mb > 0 {
+    let gpu_vram_formatted = if snapshot.gpu.memory_available {
         format!(
             "{:.1} / {:.1} GB",
             snapshot.gpu.used_memory_mb as f64 / 1024.0,
@@ -222,25 +278,47 @@ fn apply_snapshot_to_ui(window: &AppWindow, snapshot: &system::SystemSnapshot) {
 
     // 5. Storage (Up to 2 disks)
     if let Some(d1) = snapshot.disks.first() {
-        window.set_disk1_name(display_disk_name(d1).into());
+        window.set_disk1_name(display_disk_name(d1, 1, snapshot.disks.len()).into());
         window.set_disk1_fs(d1.file_system.clone().into());
-        window.set_disk1_used_str(OsInfoCollector::format_bytes(d1.used_bytes).into());
-        window.set_disk1_total_str(OsInfoCollector::format_bytes(d1.total_bytes).into());
-        window.set_disk1_free_str(OsInfoCollector::format_bytes(d1.available_bytes).into());
+        window.set_disk1_used_str(display_disk_bytes(d1.used_bytes, d1.total_bytes).into());
+        window.set_disk1_total_str(display_disk_bytes(d1.total_bytes, d1.total_bytes).into());
+        window.set_disk1_free_str(display_disk_bytes(d1.available_bytes, d1.total_bytes).into());
         window.set_disk1_usage_ratio(d1.usage_ratio);
-        window.set_disk1_percent_str(format!("{:.0}%", d1.usage_ratio * 100.0).into());
+        window.set_disk1_percent_str(
+            if d1.total_bytes > 0 {
+                format!("{:.0}%", d1.usage_ratio * 100.0)
+            } else {
+                "N/A".to_string()
+            }
+            .into(),
+        );
+    } else {
+        window.set_disk1_name("N/A".into());
+        window.set_disk1_fs("N/A".into());
+        window.set_disk1_used_str("N/A".into());
+        window.set_disk1_total_str("N/A".into());
+        window.set_disk1_free_str("N/A".into());
+        window.set_disk1_percent_str("N/A".into());
+        window.set_disk1_usage_ratio(0.0);
     }
 
     if snapshot.disks.len() > 1 {
         let d2 = &snapshot.disks[1];
         window.set_has_disk2(true);
-        window.set_disk2_name(display_disk_name(d2).into());
+        window.set_disk2_name(display_disk_name(d2, 2, snapshot.disks.len()).into());
         window.set_disk2_fs(d2.file_system.clone().into());
-        window.set_disk2_used_str(OsInfoCollector::format_bytes(d2.used_bytes).into());
-        window.set_disk2_total_str(OsInfoCollector::format_bytes(d2.total_bytes).into());
-        window.set_disk2_free_str(OsInfoCollector::format_bytes(d2.available_bytes).into());
+        window.set_disk2_used_str(display_disk_bytes(d2.used_bytes, d2.total_bytes).into());
+        window.set_disk2_total_str(display_disk_bytes(d2.total_bytes, d2.total_bytes).into());
+        window.set_disk2_free_str(display_disk_bytes(d2.available_bytes, d2.total_bytes).into());
         window.set_disk2_usage_ratio(d2.usage_ratio);
-        window.set_disk2_percent_str(format!("{:.0}%", d2.usage_ratio * 100.0).into());
+        window.set_disk2_percent_str(
+            if d2.total_bytes > 0 {
+                format!("{:.0}%", d2.usage_ratio * 100.0)
+            } else {
+                "N/A".to_string()
+            }
+            .into(),
+        );
     } else {
         window.set_has_disk2(false);
     }
@@ -271,28 +349,68 @@ fn apply_snapshot_to_ui(window: &AppWindow, snapshot: &system::SystemSnapshot) {
     // 9. Battery
     window.set_has_battery(snapshot.battery.has_battery);
     if snapshot.battery.has_battery {
+        let key = snapshot.battery.status.localization_key();
+        let status = localization.t(key);
+        let status = if status == key { "N/A" } else { &status };
         let bat_text = if snapshot.battery.energy_watts > 0.0 {
-            format!("{:.0}% ({}, {:.1}W)", snapshot.battery.charge_percent, snapshot.battery.status, snapshot.battery.energy_watts)
+            format!(
+                "{:.0}% ({}, {:.1}W)",
+                snapshot.battery.charge_percent, status, snapshot.battery.energy_watts
+            )
         } else {
-            format!("{:.0}% ({})", snapshot.battery.charge_percent, snapshot.battery.status)
+            format!("{:.0}% ({})", snapshot.battery.charge_percent, status)
         };
         window.set_battery_str(bat_text.into());
     }
 }
 
-fn display_disk_name(disk: &system::DiskInfo) -> String {
-    let mount = disk.mount_point.trim();
-    // Root mount falls back to the localized "Internal Storage" label in the UI.
-    if mount.is_empty() || mount == "/" {
-        return String::new();
+fn display_disk_bytes(bytes: u64, total: u64) -> String {
+    if total > 0 {
+        OsInfoCollector::format_bytes(bytes)
+    } else {
+        "N/A".to_string()
     }
-    // Use only the last path component for a short, friendly label
-    // (e.g. "/mnt/storage" -> "storage", "/run/media/u/wd" -> "wd").
-    mount
-        .trim_end_matches('/')
-        .rsplit('/')
-        .next()
-        .filter(|s| !s.is_empty())
-        .unwrap_or(mount)
-        .to_string()
+}
+
+fn display_disk_name(disk: &system::DiskInfo, position: usize, total: usize) -> String {
+    let mount = disk.mount_point.trim();
+    // Mount paths (and remote sources) identify storage without inventing friendly labels.
+    let label = if system::disks::DiskCollector::is_remote(&disk.file_system) {
+        format!("{} ({})", mount, disk.name)
+    } else {
+        mount.to_string()
+    };
+    if total > 2 {
+        format!("{} [{}/{}]", label, position, total)
+    } else {
+        label
+    }
+}
+
+#[cfg(test)]
+mod telemetry_display_tests {
+    use super::*;
+
+    #[test]
+    fn disk_labels_report_mounts_omitted_count_and_unavailable_capacity() {
+        let mut disk = system::DiskInfo {
+            name: "server:/storage".into(),
+            mount_point: "/".into(),
+            file_system: "ext4".into(),
+            total_bytes: 0,
+            used_bytes: 0,
+            available_bytes: 0,
+            usage_ratio: 0.0,
+        };
+        assert_eq!(display_disk_name(&disk, 1, 1), "/");
+        assert_eq!(display_disk_name(&disk, 1, 3), "/ [1/3]");
+        disk.mount_point = "/remote".into();
+        disk.file_system = "nfs".into();
+        assert_eq!(
+            display_disk_name(&disk, 2, 3),
+            "/remote (server:/storage) [2/3]"
+        );
+        assert_eq!(display_disk_bytes(0, 0), "N/A");
+        assert_eq!(display_disk_bytes(0, 100), "0 B");
+    }
 }

@@ -1,12 +1,11 @@
 import { Theme } from "../theme/Palette.slint";
 import { Typography } from "../theme/Typography.slint";
-import { IconClose, IconMaximize, IconMinimize, IconLogo } from "Icons.slint";
+import { IconClose, IconMinimize, IconLogo } from "Icons.slint";
 
 export component TitleBar inherits Rectangle {
     in property <string> title: "Tidy Cleaner";
 
     callback minimize();
-    callback maximize();
     callback close();
 
     height: 40px;
@@ -69,30 +68,6 @@ export component TitleBar inherits Rectangle {
                     mouse-cursor: pointer;
                     clicked => {
                         root.minimize();
-                    }
-                }
-            }
-
-            win_max := Rectangle {
-                y: (parent.height - self.height) / 2;
-                width: 32px;
-                height: 32px;
-                border-radius: Theme.radius_md;
-                background: max_ta.has-hover ? Theme.surface_hover : Colors.transparent;
-
-                animate background { duration: 120ms; easing: ease-out; }
-
-                IconMaximize {
-                    x: (parent.width - self.width) / 2;
-                    y: (parent.height - self.height) / 2;
-                    icon_size: 14px;
-                    icon_color: Theme.text_secondary;
-                }
-
-                max_ta := TouchArea {
-                    mouse-cursor: pointer;
-                    clicked => {
-                        root.maximize();
                     }
                 }
             }

@@ -64,6 +64,11 @@
     <string name="dashboard.zram_label">zRAM</string>
     <string name="dashboard.network_label">Сеть:</string>
     <string name="dashboard.battery_label">Батарея:</string>
+    <string name="dashboard.battery_charging">Заряжается</string>
+    <string name="dashboard.battery_discharging">Разряжается</string>
+    <string name="dashboard.battery_full">Заряжена</string>
+    <string name="dashboard.battery_not_charging">Не заряжается</string>
+    <string name="dashboard.battery_unknown">Неизвестно</string>
 
     <!-- Cleanup -->
     <string name="cleanup.title">Очистка системы</string>
@@ -225,7 +230,7 @@
     <string name="settings.updates_latest">Установлена актуальная версия</string>
     <string name="settings.updates_checking">Проверка наличия обновлений...</string>
     <string name="settings.about">О программе</string>
-    <string name="settings.version_label">Версия 0.1.1 (Linux x86_64)</string>
+    <string name="settings.version_label">Версия {version} (Linux {arch})</string>
     <string name="settings.open_logs">Открыть папку логов</string>
 
     <!-- Tooltips -->

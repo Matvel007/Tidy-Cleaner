@@ -1,9 +1,10 @@
 use crate::cleanup::models::{CleanupItem, CleanupRule, ScanPhase, ScanProgress};
+use crate::filesystem::safety::traverse_target;
 use std::path::Path;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
+use std::time::Duration;
 use tokio::sync::mpsc::UnboundedSender;
-use walkdir::WalkDir;
 
 pub struct Scanner;
 
@@ -33,6 +34,42 @@ impl Scanner {
 
             // Skip deep-scan-only rules during fast scan
             if rule.is_deep_scan && !is_full_scan {
+                continue;
+            }
+
+            if rule.id == "jetbrains_cache" {
+                if let Ok(mut products) = tokio::fs::read_dir(&rule.base_path).await {
+                    while let Ok(Some(product)) = products.next_entry().await {
+                        if cancel_token.load(Ordering::Acquire) {
+                            break;
+                        }
+                        for disposable in ["caches", "index"] {
+                            let path = product.path().join(disposable);
+                            if !jetbrains_disposable_target(&path) {
+                                continue;
+                            }
+                            let size = Self::calculate_size(&path, cancel_token.clone()).await;
+                            if size > 0 && !cancel_token.load(Ordering::Acquire) {
+                                items.push(CleanupItem {
+                                    id: format!(
+                                        "jetbrains_{}_{}",
+                                        product.file_name().to_string_lossy(),
+                                        disposable
+                                    ),
+                                    rule_id: rule.id.clone(),
+                                    name: rule.name_key.clone(),
+                                    description: rule.description_key.clone(),
+                                    path,
+                                    size_bytes: size,
+                                    size_formatted: Self::format_bytes(size),
+                                    safety_level: rule.safety_level,
+                                    category: rule.category,
+                                    selected: true,
+                                });
+                            }
+                        }
+                    }
+                }
                 continue;
             }
 
@@ -77,7 +114,7 @@ impl Scanner {
             // Calculate size of target path
             let size_bytes = Self::calculate_size(&rule.base_path, cancel_token.clone()).await;
 
-            if size_bytes > 0 {
+            if size_bytes > 0 && !cancel_token.load(Ordering::Acquire) {
                 let formatted = Self::format_bytes(size_bytes);
                 items.push(CleanupItem {
                     id: format!("{}_{}", rule.id, idx),
@@ -116,11 +153,19 @@ impl Scanner {
         if let Some(ref tx) = progress_tx {
             let total_bytes: u64 = items.iter().map(|i| i.size_bytes).sum();
             let _ = tx.send(ScanProgress {
-                phase: ScanPhase::Completed,
+                phase: if cancel_token.load(Ordering::Acquire) {
+                    ScanPhase::Cancelled
+                } else {
+                    ScanPhase::Completed
+                },
                 current_item: String::new(),
                 items_found: items.len(),
                 bytes_found: total_bytes,
-                percent: 100.0,
+                percent: if cancel_token.load(Ordering::Acquire) {
+                    0.0
+                } else {
+                    100.0
+                },
             });
         }
 
@@ -130,25 +175,11 @@ impl Scanner {
     async fn calculate_size(path: &Path, cancel_token: Arc<AtomicBool>) -> u64 {
         let path = path.to_path_buf();
         tokio::task::spawn_blocking(move || {
-            let mut total_size = 0u64;
-
-            for entry in WalkDir::new(&path)
-                .follow_links(false)
-                .into_iter()
-                .filter_map(|e| e.ok())
-            {
-                if cancel_token.load(Ordering::Relaxed) {
-                    break;
-                }
-
-                if let Ok(meta) = entry.metadata() {
-                    if meta.is_file() {
-                        total_size += meta.len();
-                    }
-                }
-            }
-
-            total_size
+            traverse_target(&path, &cancel_token, false, false)
+                .ok()
+                .filter(|r| r.errors.is_empty() && !r.cancelled)
+                .map(|r| r.bytes)
+                .unwrap_or(0)
         })
         .await
         .unwrap_or(0)
@@ -171,11 +202,13 @@ impl Scanner {
     }
 
     async fn scan_systemd_journal(rule: &CleanupRule, idx: usize) -> Option<CleanupItem> {
-        let output = tokio::process::Command::new("journalctl")
-            .args(["--user", "--disk-usage"])
-            .output()
-            .await
-            .ok()?;
+        let output = bounded_output(
+            tokio::process::Command::new("journalctl")
+                .args(["--user", "--disk-usage"])
+                .env("LC_ALL", "C"),
+        )
+        .await
+        .ok()?;
 
         if !output.status.success() {
             return None;
@@ -207,14 +240,14 @@ impl Scanner {
             let after = &lower[pos + 8..];
             if let Some(token) = after.split_whitespace().next() {
                 let token = token.trim_end_matches('.');
-                let (num_str, mult) = if token.ends_with('g') {
-                    (&token[..token.len() - 1], 1024.0 * 1024.0 * 1024.0)
-                } else if token.ends_with('m') {
-                    (&token[..token.len() - 1], 1024.0 * 1024.0)
-                } else if token.ends_with('k') {
-                    (&token[..token.len() - 1], 1024.0)
-                } else if token.ends_with('b') {
-                    (&token[..token.len() - 1], 1.0)
+                let (num_str, mult) = if let Some(rest) = token.strip_suffix('g') {
+                    (rest, 1024.0 * 1024.0 * 1024.0)
+                } else if let Some(rest) = token.strip_suffix('m') {
+                    (rest, 1024.0 * 1024.0)
+                } else if let Some(rest) = token.strip_suffix('k') {
+                    (rest, 1024.0)
+                } else if let Some(rest) = token.strip_suffix('b') {
+                    (rest, 1.0)
                 } else {
                     (token, 1.0)
                 };
@@ -243,7 +276,7 @@ impl Scanner {
                 if cache_dir.exists() && cache_dir.is_dir() {
                     let app_name = entry.file_name().to_string_lossy().to_string();
                     let size = Self::calculate_size(&cache_dir, cancel_token.clone()).await;
-                    if size > 0 {
+                    if size > 0 && !cancel_token.load(Ordering::Acquire) {
                         result.push(CleanupItem {
                             id: format!("flatpak_{}_{}", app_name, app_idx),
                             rule_id: "flatpak_apps".to_string(),
@@ -264,15 +297,14 @@ impl Scanner {
         result
     }
 
-    async fn scan_orphaned_packages(
-        rule: &CleanupRule,
-        idx: usize,
-    ) -> Option<CleanupItem> {
+    async fn scan_orphaned_packages(rule: &CleanupRule, idx: usize) -> Option<CleanupItem> {
         // 1. Arch Linux (pacman)
-        if let Ok(output) = tokio::process::Command::new("pacman")
-            .args(["-Qtdq"])
-            .output()
-            .await
+        if let Ok(output) = bounded_output(
+            tokio::process::Command::new("pacman")
+                .args(["-Qtdq"])
+                .env("LC_ALL", "C"),
+        )
+        .await
         {
             if output.status.success() {
                 let stdout = String::from_utf8_lossy(&output.stdout);
@@ -284,12 +316,13 @@ impl Scanner {
 
                 if !pkgs.is_empty() {
                     let mut size = 0u64;
-                    if let Ok(qi_out) = tokio::process::Command::new("pacman")
-                        .args(["-Qi"])
-                        .args(&pkgs)
-                        .env("LC_ALL", "C")
-                        .output()
-                        .await
+                    if let Ok(qi_out) = bounded_output(
+                        tokio::process::Command::new("pacman")
+                            .args(["-Qi"])
+                            .args(&pkgs)
+                            .env("LC_ALL", "C"),
+                    )
+                    .await
                     {
                         if qi_out.status.success() {
                             let qi_str = String::from_utf8_lossy(&qi_out.stdout);
@@ -303,7 +336,10 @@ impl Scanner {
                         rule_id: rule.id.clone(),
                         name: rule.name_key.clone(),
                         description: rule.description_key.clone(),
-                        path: std::path::PathBuf::from(format!("orphans:{}", pkgs.join(","))),
+                        path: std::path::PathBuf::from(format!(
+                            "orphans:pacman:{}",
+                            pkgs.join(",")
+                        )),
                         size_bytes: size,
                         size_formatted: formatted,
                         safety_level: rule.safety_level,
@@ -315,11 +351,12 @@ impl Scanner {
         }
 
         // 2. Debian/Ubuntu (apt-get)
-        if let Ok(output) = tokio::process::Command::new("apt-get")
-            .args(["-s", "autoremove"])
-            .env("LC_ALL", "C")
-            .output()
-            .await
+        if let Ok(output) = bounded_output(
+            tokio::process::Command::new("apt-get")
+                .args(["-s", "autoremove"])
+                .env("LC_ALL", "C"),
+        )
+        .await
         {
             if output.status.success() {
                 let stdout = String::from_utf8_lossy(&output.stdout);
@@ -339,7 +376,7 @@ impl Scanner {
                         rule_id: rule.id.clone(),
                         name: rule.name_key.clone(),
                         description: rule.description_key.clone(),
-                        path: std::path::PathBuf::from(format!("orphans:{}", pkgs.join(","))),
+                        path: std::path::PathBuf::from(format!("orphans:apt:{}", pkgs.join(","))),
                         size_bytes: size,
                         size_formatted: formatted,
                         safety_level: rule.safety_level,
@@ -358,7 +395,7 @@ impl Scanner {
         for line in text.lines() {
             if line.contains("Installed Size") {
                 if let Some(pos) = line.find(':') {
-                    let parts: Vec<&str> = line[pos + 1..].trim().split_whitespace().collect();
+                    let parts: Vec<&str> = line[pos + 1..].split_whitespace().collect();
                     if parts.len() >= 2 {
                         let num_str = parts[0].replace(',', ".");
                         let unit = parts[1].to_lowercase();
@@ -387,7 +424,7 @@ impl Scanner {
             let before = &lower[..pos];
             if let Some(comma_pos) = before.rfind(',') {
                 let segment = &before[comma_pos + 1..];
-                let parts: Vec<&str> = segment.trim().split_whitespace().collect();
+                let parts: Vec<&str> = segment.split_whitespace().collect();
                 if parts.len() >= 2 {
                     let num_str = parts[0].replace(',', ".");
                     let unit = parts[1];
@@ -408,4 +445,56 @@ impl Scanner {
         }
         0
     }
+}
+
+pub(crate) fn jetbrains_disposable_target(path: &Path) -> bool {
+    let Some(leaf) = path.file_name().and_then(|s| s.to_str()) else {
+        return false;
+    };
+    if !["caches", "index"].contains(&leaf) {
+        return false;
+    }
+    let Some(product_path) = path.parent() else {
+        return false;
+    };
+    if product_path
+        .parent()
+        .and_then(Path::file_name)
+        .and_then(|s| s.to_str())
+        != Some("JetBrains")
+    {
+        return false;
+    }
+    let Some(product) = product_path.file_name().and_then(|s| s.to_str()) else {
+        return false;
+    };
+    [
+        "IntelliJIdea",
+        "IdeaIC",
+        "PyCharm",
+        "PyCharmCE",
+        "WebStorm",
+        "CLion",
+        "GoLand",
+        "Rider",
+        "RustRover",
+        "DataGrip",
+        "PhpStorm",
+        "RubyMine",
+    ]
+    .iter()
+    .any(|prefix| {
+        product.strip_prefix(prefix).is_some_and(|version| {
+            version.starts_with(|c: char| c.is_ascii_digit())
+                && version.bytes().all(|b| b.is_ascii_digit() || b == b'.')
+        })
+    })
+}
+
+pub(crate) async fn bounded_output(
+    cmd: &mut tokio::process::Command,
+) -> std::io::Result<std::process::Output> {
+    tokio::time::timeout(Duration::from_secs(15), cmd.kill_on_drop(true).output())
+        .await
+        .map_err(|_| std::io::Error::new(std::io::ErrorKind::TimedOut, "cleanup query timed out"))?
 }

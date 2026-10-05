@@ -1,6 +1,22 @@
 use anyhow::{bail, Context, Result};
 use std::process::Command;
 
+pub fn validate_package_id(id: &str) -> Result<()> {
+    if id.is_empty()
+        || id.starts_with('-')
+        || !id
+            .bytes()
+            .all(|c| c.is_ascii_alphanumeric() || b"+._:-".contains(&c))
+    {
+        return Err(std::io::Error::new(
+            std::io::ErrorKind::InvalidInput,
+            "invalid package target",
+        )
+        .into());
+    }
+    Ok(())
+}
+
 pub struct PolkitExecutor;
 
 impl PolkitExecutor {

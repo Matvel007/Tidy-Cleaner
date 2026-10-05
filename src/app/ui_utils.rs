@@ -173,7 +173,12 @@ pub fn update_ui_strings(window: &AppWindow, state: &AppState) {
     i18n.set_settings_updates_latest(loc.t("settings.updates_latest").into());
     i18n.set_settings_updates_checking(loc.t("settings.updates_checking").into());
     i18n.set_settings_about(loc.t("settings.about").into());
-    i18n.set_settings_version_label(loc.t("settings.version_label").into());
+    i18n.set_settings_version_label(
+        loc.t("settings.version_label")
+            .replace("{version}", env!("CARGO_PKG_VERSION"))
+            .replace("{arch}", std::env::consts::ARCH)
+            .into(),
+    );
     i18n.set_settings_open_logs(loc.t("settings.open_logs").into());
 
     i18n.set_tooltip_open_app(loc.t("tooltip.open_app").into());

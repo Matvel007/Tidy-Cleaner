@@ -2,6 +2,7 @@ use crate::applications::desktop_entries::{DesktopEntryInfo, DesktopEntryRegistr
 use crate::applications::models::{ApplicationItem, PackageSource};
 use crate::applications::polkit::PolkitExecutor;
 use crate::applications::traits::PackageManagerProvider;
+use crate::process::ReadOnlyCommand;
 use anyhow::{bail, Context, Result};
 use std::collections::{HashMap, HashSet};
 use std::path::Path;
@@ -38,19 +39,23 @@ impl PacmanProvider {
             || lower.contains("darkly")
     }
 
-    fn get_explicit_packages() -> HashSet<String> {
+    fn get_explicit_packages() -> Result<HashSet<String>> {
         let mut set = HashSet::new();
-        if let Ok(output) = Command::new("pacman").args(["-Qen"]).output() {
-            if output.status.success() {
-                let stdout = String::from_utf8_lossy(&output.stdout);
-                for line in stdout.lines() {
-                    if let Some(pkg) = line.split_whitespace().next() {
-                        set.insert(pkg.to_lowercase());
-                    }
-                }
+        let output = Command::new("pacman").args(["-Qen"]).scan_output()?;
+        if !output.status.success()
+            && !(output.status.code() == Some(1)
+                && output.stdout.is_empty()
+                && output.stderr.is_empty())
+        {
+            bail!("pacman -Qen: {}", String::from_utf8_lossy(&output.stderr));
+        }
+        let stdout = String::from_utf8_lossy(&output.stdout);
+        for line in stdout.lines() {
+            if let Some(pkg) = line.split_whitespace().next() {
+                set.insert(pkg.to_lowercase());
             }
         }
-        set
+        Ok(set)
     }
 
     fn parse_installed_packages(
@@ -58,14 +63,20 @@ impl PacmanProvider {
     ) -> Result<Vec<ApplicationItem>> {
         let output = Command::new("pacman")
             .args(["-Qn"])
-            .output()
+            .scan_output()
             .context("Failed to execute pacman -Qn")?;
 
         if !output.status.success() {
-            bail!("pacman returned non-zero status");
+            if output.status.code() == Some(1)
+                && output.stdout.is_empty()
+                && output.stderr.is_empty()
+            {
+                return Ok(Vec::new());
+            }
+            bail!("pacman -Qn: {}", String::from_utf8_lossy(&output.stderr));
         }
 
-        let explicit_pkgs = Self::get_explicit_packages();
+        let explicit_pkgs = Self::get_explicit_packages()?;
         let stdout = String::from_utf8_lossy(&output.stdout);
         let mut apps = Vec::new();
 
@@ -77,12 +88,7 @@ impl PacmanProvider {
             let pkg_name = parts[0].to_string();
             let version = parts[1].to_string();
             let pkg_lower = pkg_name.to_lowercase();
-            let norm_pkg = pkg_lower.replace(['-', '_', '.'], "");
-
-            // Match with Desktop Entry (by exact name or normalized name)
-            let desktop_info = desktop_entries
-                .get(&pkg_lower)
-                .or_else(|| desktop_entries.get(&norm_pkg));
+            let desktop_info = desktop_entries.get(&pkg_lower);
 
             let is_explicit = explicit_pkgs.contains(&pkg_lower);
 
@@ -160,33 +166,31 @@ impl PackageManagerProvider for PacmanProvider {
     fn is_available(&self) -> bool {
         Command::new("pacman")
             .arg("--version")
-            .output()
+            .scan_output()
             .map(|o| o.status.success())
             .unwrap_or(false)
     }
 
     fn list_installed(&self) -> Result<Vec<ApplicationItem>> {
-        if !self.is_available() {
-            return Ok(Vec::new());
-        }
-        let desktop_entries = DesktopEntryRegistry::scan_system_entries();
+        let desktop_entries = DesktopEntryRegistry::native_entries(PackageSource::Pacman)?;
         Self::parse_installed_packages(&desktop_entries)
     }
 
     fn uninstall(&self, package_id: &str) -> Result<()> {
-        PolkitExecutor::run_with_pkexec("pacman", &["-Rns", "--noconfirm", package_id])
+        crate::applications::polkit::validate_package_id(package_id)?;
+        PolkitExecutor::run_with_pkexec("pacman", &["-R", "--noconfirm", "--", package_id])
     }
 
     fn get_details(&self, package_id: &str) -> Result<Option<String>> {
         let output = Command::new("pacman")
             .args(["-Qi", package_id])
-            .output()
+            .scan_output()
             .context("Failed to get pacman package details")?;
 
         if output.status.success() {
             Ok(Some(String::from_utf8_lossy(&output.stdout).to_string()))
         } else {
-            Ok(None)
+            bail!("pacman -Qi: {}", String::from_utf8_lossy(&output.stderr))
         }
     }
 }

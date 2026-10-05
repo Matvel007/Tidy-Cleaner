@@ -2,6 +2,7 @@ use crate::applications::desktop_entries::{DesktopEntryInfo, DesktopEntryRegistr
 use crate::applications::models::{ApplicationItem, PackageSource};
 use crate::applications::polkit::PolkitExecutor;
 use crate::applications::traits::PackageManagerProvider;
+use crate::process::ReadOnlyCommand;
 use anyhow::{Context, Result};
 use std::collections::HashMap;
 use std::path::Path;
@@ -43,11 +44,17 @@ impl AurProvider {
     ) -> Result<Vec<ApplicationItem>> {
         let output = Command::new("pacman")
             .args(["-Qm"])
-            .output()
+            .scan_output()
             .context("Failed to execute pacman -Qm")?;
 
         if !output.status.success() {
-            return Ok(Vec::new());
+            if output.status.code() == Some(1)
+                && output.stdout.is_empty()
+                && output.stderr.is_empty()
+            {
+                return Ok(Vec::new());
+            }
+            anyhow::bail!("pacman -Qm: {}", String::from_utf8_lossy(&output.stderr));
         }
 
         let stdout = String::from_utf8_lossy(&output.stdout);
@@ -61,12 +68,7 @@ impl AurProvider {
             let pkg_name = parts[0].to_string();
             let version = parts[1].to_string();
             let pkg_lower = pkg_name.to_lowercase();
-            let norm_pkg = pkg_lower.replace(['-', '_', '.'], "");
-
-            // Match with Desktop Entry (by exact name or normalized name)
-            let desktop_info = desktop_entries
-                .get(&pkg_lower)
-                .or_else(|| desktop_entries.get(&norm_pkg));
+            let desktop_info = desktop_entries.get(&pkg_lower);
 
             // Filter out non-target programs
             if desktop_info.is_none() {
@@ -143,33 +145,31 @@ impl PackageManagerProvider for AurProvider {
     fn is_available(&self) -> bool {
         Command::new("pacman")
             .arg("--version")
-            .output()
+            .scan_output()
             .map(|o| o.status.success())
             .unwrap_or(false)
     }
 
     fn list_installed(&self) -> Result<Vec<ApplicationItem>> {
-        if !self.is_available() {
-            return Ok(Vec::new());
-        }
-        let desktop_entries = DesktopEntryRegistry::scan_system_entries();
+        let desktop_entries = DesktopEntryRegistry::native_entries(PackageSource::Aur)?;
         Self::parse_aur_packages(&desktop_entries)
     }
 
     fn uninstall(&self, package_id: &str) -> Result<()> {
-        PolkitExecutor::run_with_pkexec("pacman", &["-Rns", "--noconfirm", package_id])
+        crate::applications::polkit::validate_package_id(package_id)?;
+        PolkitExecutor::run_with_pkexec("pacman", &["-R", "--noconfirm", "--", package_id])
     }
 
     fn get_details(&self, package_id: &str) -> Result<Option<String>> {
         let output = Command::new("pacman")
             .args(["-Qi", package_id])
-            .output()
+            .scan_output()
             .context("Failed to get AUR package details")?;
 
         if output.status.success() {
             Ok(Some(String::from_utf8_lossy(&output.stdout).to_string()))
         } else {
-            Ok(None)
+            anyhow::bail!("pacman -Qi: {}", String::from_utf8_lossy(&output.stderr))
         }
     }
 }

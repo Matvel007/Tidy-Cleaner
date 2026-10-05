@@ -2,9 +2,9 @@ use crate::applications::desktop_entries::{DesktopEntryInfo, DesktopEntryRegistr
 use crate::applications::models::{ApplicationItem, PackageSource};
 use crate::applications::polkit::PolkitExecutor;
 use crate::applications::traits::PackageManagerProvider;
+use crate::process::ReadOnlyCommand;
 use anyhow::{bail, Context, Result};
 use std::collections::HashMap;
-use std::path::Path;
 use std::process::Command;
 
 pub struct SnapProvider;
@@ -19,7 +19,7 @@ impl SnapProvider {
     ) -> Result<Vec<ApplicationItem>> {
         let output = Command::new("snap")
             .args(["list"])
-            .output()
+            .scan_output()
             .context("Failed to execute snap list")?;
 
         if !output.status.success() {
@@ -37,49 +37,27 @@ impl SnapProvider {
             let snap_name = parts[0].to_string();
             let version = parts[1].to_string();
 
-            // Skip base snaps
-            if snap_name == "core"
-                || snap_name.starts_with("core")
-                || snap_name.starts_with("bare")
-                || snap_name.starts_with("gnome-")
-                || snap_name.starts_with("gtk-common-")
-            {
-                continue;
-            }
-
-            let snap_lower = snap_name.to_lowercase();
-            let norm_snap = snap_lower.replace(['-', '_', '.'], "");
-
             let desktop_info = desktop_entries
-                .get(&snap_lower)
-                .or_else(|| desktop_entries.get(&norm_snap));
+                .values()
+                .filter(|info| info.snap_name.as_deref() == Some(snap_name.as_str()))
+                .min_by(|a, b| a.file_path.cmp(&b.file_path));
+            // Bases/content runtimes do not export applications. In particular,
+            // gnome-calculator is an app, not a gnome runtime by name prefix.
+            let Some(desktop_info) = desktop_info else {
+                continue;
+            };
 
-            let (name, icon, exec_cmd, desktop_file_path, is_desktop, desc) =
-                if let Some(info) = desktop_info {
-                    (
-                        info.name.clone(),
-                        info.icon.clone(),
-                        Some(info.exec.clone()),
-                        Some(info.file_path.clone()),
-                        true,
-                        info.comment.clone(),
-                    )
-                } else {
-                    let snap_bin = format!("/snap/bin/{}", snap_name);
-                    let is_bin = Path::new(&snap_bin).exists();
-                    (
-                        snap_name.clone(),
-                        String::new(),
-                        if is_bin {
-                            Some(snap_bin)
-                        } else {
-                            Some(snap_name.clone())
-                        },
-                        None,
-                        is_bin,
-                        String::new(),
-                    )
-                };
+            let (name, icon, exec_cmd, desktop_file_path, is_desktop, desc) = {
+                let info = desktop_info;
+                (
+                    info.name.clone(),
+                    info.icon.clone(),
+                    Some(info.exec.clone()),
+                    Some(info.file_path.clone()),
+                    true,
+                    info.comment.clone(),
+                )
+            };
 
             let icon_path = DesktopEntryRegistry::resolve_icon_path(&icon);
 
@@ -123,33 +101,31 @@ impl PackageManagerProvider for SnapProvider {
     fn is_available(&self) -> bool {
         Command::new("snap")
             .arg("--version")
-            .output()
+            .scan_output()
             .map(|o| o.status.success())
             .unwrap_or(false)
     }
 
     fn list_installed(&self) -> Result<Vec<ApplicationItem>> {
-        if !self.is_available() {
-            return Ok(Vec::new());
-        }
-        let desktop_entries = DesktopEntryRegistry::scan_system_entries();
+        let desktop_entries = DesktopEntryRegistry::scan_system_entries()?;
         Self::parse_installed_packages(&desktop_entries)
     }
 
     fn uninstall(&self, package_id: &str) -> Result<()> {
+        crate::applications::polkit::validate_package_id(package_id)?;
         PolkitExecutor::run_with_pkexec("snap", &["remove", package_id])
     }
 
     fn get_details(&self, package_id: &str) -> Result<Option<String>> {
         let output = Command::new("snap")
             .args(["info", package_id])
-            .output()
+            .scan_output()
             .context("Failed to get snap details")?;
 
         if output.status.success() {
             Ok(Some(String::from_utf8_lossy(&output.stdout).to_string()))
         } else {
-            Ok(None)
+            bail!("snap info: {}", String::from_utf8_lossy(&output.stderr))
         }
     }
 }

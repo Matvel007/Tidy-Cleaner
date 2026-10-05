@@ -4887,9 +4887,10 @@ dependencies = [
 
 [[package]]
 name = "tidy-cleaner"
-version = "0.1.1"
+version = "0.2.0"
 dependencies = [
  "anyhow",
+ "libc",
  "quick-xml 0.37.5",
  "serde",
  "serde_json",

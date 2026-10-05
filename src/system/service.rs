@@ -1,20 +1,21 @@
 use super::battery::BatteryCollector;
 use super::cpu::CpuCollector;
 use super::disks::DiskCollector;
-use super::gpu::GpuCollector;
+use super::gpu::{GpuCollector, GpuMetrics};
 use super::memory::MemoryCollector;
 use super::models::SystemSnapshot;
 use super::network::NetworkCollector;
 use super::os_info::OsInfoCollector;
-use super::temperature::TemperatureCollector;
+use super::temperature::{TemperatureCollector, TemperatureMetrics};
 use std::sync::{Arc, Mutex};
-use sysinfo::{CpuRefreshKind, MemoryRefreshKind, RefreshKind, System};
+use sysinfo::System;
 
 pub struct SystemMonitorService {
     system: Mutex<System>,
     cpu_collector: Mutex<CpuCollector>,
     mem_collector: Mutex<MemoryCollector>,
     net_collector: Mutex<NetworkCollector>,
+    gpu: Mutex<GpuMetrics>,
 }
 
 impl Default for SystemMonitorService {
@@ -25,16 +26,12 @@ impl Default for SystemMonitorService {
 
 impl SystemMonitorService {
     pub fn new() -> Self {
-        let refresh_kind = RefreshKind::nothing()
-            .with_cpu(CpuRefreshKind::everything())
-            .with_memory(MemoryRefreshKind::everything());
-        let system = System::new_with_specifics(refresh_kind);
-
         Self {
-            system: Mutex::new(system),
+            system: Mutex::new(System::new()),
             cpu_collector: Mutex::new(CpuCollector::new()),
             mem_collector: Mutex::new(MemoryCollector::new()),
             net_collector: Mutex::new(NetworkCollector::new()),
+            gpu: Mutex::new(GpuMetrics::default()),
         }
     }
 
@@ -45,10 +42,13 @@ impl SystemMonitorService {
         let mut net_col = self.net_collector.lock().unwrap();
 
         let cpu = cpu_col.collect(&mut sys);
-        let gpu = GpuCollector::collect();
+        let gpu = self.gpu.lock().unwrap().clone();
         let memory = mem_col.collect(&mut sys);
         let disks = DiskCollector::collect_disks();
-        let temperature = TemperatureCollector::collect();
+        let temperature = TemperatureMetrics {
+            cpu_temp_c: TemperatureCollector::collect_cpu_temp(),
+            gpu_temp_c: gpu.temperature_c,
+        };
         let overview = OsInfoCollector::collect_overview(&sys);
         let network = net_col.collect();
         let battery = BatteryCollector::collect();
@@ -63,6 +63,12 @@ impl SystemMonitorService {
             network,
             battery,
         }
+    }
+
+    // Run independently of the core sampler: a slow driver cannot freeze CPU/RAM/network.
+    pub fn sample_gpu(&self) {
+        let gpu = GpuCollector::collect();
+        *self.gpu.lock().unwrap() = gpu;
     }
 }
 

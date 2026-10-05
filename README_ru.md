@@ -6,7 +6,7 @@
 
 **Современный, ультрабыстрый и премиальный системный менеджер и инструмент очистки для Linux, написанный на Rust с использованием Slint.**
 
-[![Rust](https://img.shields.io/badge/Rust-1.80%2B-orange.svg?logo=rust)](https://www.rust-lang.org/)
+[![Rust](https://img.shields.io/badge/Rust-1.92%2B-orange.svg?logo=rust)](https://www.rust-lang.org/)
 [![Slint UI](https://img.shields.io/badge/Slint-1.17-blue.svg?logo=slint)](https://slint.dev/)
 [![Платформа](https://img.shields.io/badge/Платформа-Linux-green.svg?logo=linux)](https://kernel.org)
 [![Лицензия: MIT](https://img.shields.io/badge/Лицензия-MIT-yellow.svg)](LICENSE)
@@ -78,15 +78,23 @@ paru -S tidy-cleaner-git
 
 ### Требования
 
-Убедитесь, что у вас установлены компилятор Rust и Cargo:
+Tidy Cleaner требует **Rust 1.92+** (ограничение зафиксированного Slint 1.17).
+Пакетные менеджеры дистрибутивов часто содержат более старый компилятор,
+поэтому рекомендуется [rustup](https://rustup.rs/):
 
 ```bash
-# Arch Linux / CachyOS / Manjaro
+# Любой дистрибутив (рекомендуется)
+curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+
+# Arch Linux / CachyOS / Manjaro (rolling, обычно достаточно свежий)
 sudo pacman -S rust cargo
 
-# Debian / Ubuntu
+# Debian / Ubuntu (может быть слишком старым; лучше rustup)
 sudo apt update && sudo apt install cargo
 ```
+
+Для работы нужен Fontconfig; AUR-пакеты объявляют его зависимостью:
+`sudo pacman -S fontconfig` (обычно уже установлен на десктопе).
 
 ### Запуск в режиме разработки
 

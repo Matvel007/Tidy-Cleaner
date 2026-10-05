@@ -2,6 +2,7 @@ use crate::applications::desktop_entries::{DesktopEntryInfo, DesktopEntryRegistr
 use crate::applications::models::{ApplicationItem, PackageSource};
 use crate::applications::polkit::PolkitExecutor;
 use crate::applications::traits::PackageManagerProvider;
+use crate::process::ReadOnlyCommand;
 use anyhow::{bail, Context, Result};
 use std::collections::HashMap;
 use std::path::Path;
@@ -30,8 +31,8 @@ impl DpkgProvider {
         desktop_entries: &HashMap<String, DesktopEntryInfo>,
     ) -> Result<Vec<ApplicationItem>> {
         let output = Command::new("dpkg-query")
-            .args(["-W", "-f=${Package}\t${Version}\t${Status}\n"])
-            .output()
+            .args(["-W", "-f=${binary:Package}\t${Version}\t${Status}\n"])
+            .scan_output()
             .context("Failed to execute dpkg-query")?;
 
         if !output.status.success() {
@@ -47,18 +48,14 @@ impl DpkgProvider {
                 continue;
             }
             let status = parts[2];
-            if !status.contains("installed") {
+            if status != "install ok installed" {
                 continue;
             }
 
             let pkg_name = parts[0].to_string();
             let version = parts[1].to_string();
             let pkg_lower = pkg_name.to_lowercase();
-            let norm_pkg = pkg_lower.replace(['-', '_', '.'], "");
-
-            let desktop_info = desktop_entries
-                .get(&pkg_lower)
-                .or_else(|| desktop_entries.get(&norm_pkg));
+            let desktop_info = desktop_entries.get(&pkg_lower);
 
             if desktop_info.is_none() {
                 if Self::is_excluded(&pkg_name) {
@@ -133,33 +130,62 @@ impl PackageManagerProvider for DpkgProvider {
     fn is_available(&self) -> bool {
         Command::new("dpkg-query")
             .arg("--version")
-            .output()
+            .scan_output()
             .map(|o| o.status.success())
             .unwrap_or(false)
     }
 
     fn list_installed(&self) -> Result<Vec<ApplicationItem>> {
-        if !self.is_available() {
-            return Ok(Vec::new());
-        }
-        let desktop_entries = DesktopEntryRegistry::scan_system_entries();
+        let desktop_entries = DesktopEntryRegistry::native_entries(PackageSource::Dpkg)?;
         Self::parse_installed_packages(&desktop_entries)
     }
 
     fn uninstall(&self, package_id: &str) -> Result<()> {
-        PolkitExecutor::run_with_pkexec("apt-get", &["remove", "-y", package_id])
+        crate::applications::polkit::validate_package_id(package_id)?;
+        let metadata = Command::new("dpkg-query")
+            .args([
+                "-W",
+                "-f=${Essential}\t${Protected}\t${Status}\n",
+                "--",
+                package_id,
+            ])
+            .scan_output()?;
+        if !metadata.status.success() {
+            bail!("dpkg-query: {}", String::from_utf8_lossy(&metadata.stderr));
+        }
+        let text = String::from_utf8_lossy(&metadata.stdout);
+        let fields: Vec<_> = text.trim_end_matches('\n').split('\t').collect();
+        if fields.len() != 3
+            || fields[0] == "yes"
+            || fields[1] == "yes"
+            || fields[2] != "install ok installed"
+        {
+            return Err(std::io::Error::new(
+                std::io::ErrorKind::PermissionDenied,
+                format!("dpkg protected/unverified target: {package_id}"),
+            )
+            .into());
+        }
+        // Remove exactly the confirmed package: no resolver, autoremove,
+        // --force-* or additional removals. dpkg does not remove reverse
+        // dependencies, so dependents are left for the user to resolve rather
+        // than silently uninstalled; Essential/Protected are rejected above.
+        PolkitExecutor::run_with_pkexec("dpkg", &["--no-force-all", "--remove", "--", package_id])
     }
 
     fn get_details(&self, package_id: &str) -> Result<Option<String>> {
         let output = Command::new("apt-cache")
             .args(["show", package_id])
-            .output()
+            .scan_output()
             .context("Failed to get apt package details")?;
 
         if output.status.success() {
             Ok(Some(String::from_utf8_lossy(&output.stdout).to_string()))
         } else {
-            Ok(None)
+            bail!(
+                "apt-cache show: {}",
+                String::from_utf8_lossy(&output.stderr)
+            )
         }
     }
 }

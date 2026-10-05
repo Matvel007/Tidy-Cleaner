@@ -88,9 +88,41 @@ pub struct NetworkMetrics {
 pub struct BatteryMetrics {
     pub has_battery: bool,
     pub charge_percent: f32,
-    pub status: String,
+    pub status: BatteryStatus,
     pub energy_watts: f32,
     pub health_percent: f32,
+}
+
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, Default, PartialEq, Eq)]
+pub enum BatteryStatus {
+    Charging,
+    Discharging,
+    Full,
+    NotCharging,
+    #[default]
+    Unknown,
+}
+
+impl BatteryStatus {
+    pub fn from_sysfs(value: &str) -> Self {
+        match value.trim() {
+            "Charging" => Self::Charging,
+            "Discharging" => Self::Discharging,
+            "Full" => Self::Full,
+            "Not charging" => Self::NotCharging,
+            _ => Self::Unknown,
+        }
+    }
+
+    pub fn localization_key(self) -> &'static str {
+        match self {
+            Self::Charging => "dashboard.battery_charging",
+            Self::Discharging => "dashboard.battery_discharging",
+            Self::Full => "dashboard.battery_full",
+            Self::NotCharging => "dashboard.battery_not_charging",
+            Self::Unknown => "dashboard.battery_unknown",
+        }
+    }
 }
 
 #[derive(Debug, Clone, Default)]

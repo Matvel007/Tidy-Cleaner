@@ -125,7 +125,6 @@ export component AppWindow inherits Window {
 
     // Window callbacks
     callback window_minimize();
-    callback window_maximize();
     callback window_close();
 
     // Callbacks to Rust
@@ -188,7 +187,6 @@ export component AppWindow inherits Window {
         TitleBar {
             title: I18n.app_title;
             minimize => { root.window_minimize(); }
-            maximize => { root.window_maximize(); }
             close => { root.window_close(); }
         }
 

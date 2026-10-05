@@ -1,7 +1,30 @@
 use crate::startup::models::{CreateStartupRequest, StartupItem, StartupSource};
 use anyhow::{bail, Context, Result};
-use std::fs;
+use std::fs::{self, File, OpenOptions};
+use std::io::Write;
 use std::path::{Path, PathBuf};
+use std::sync::atomic::{AtomicU64, Ordering};
+
+static TEMP_SEQUENCE: AtomicU64 = AtomicU64::new(0);
+
+/// All cooperating instances lock the directory before read/modify/write or delete.
+/// The lock file is persistent: unlinking it would allow two different lock inodes.
+pub fn with_directory_lock<T>(dir: &Path, operation: impl FnOnce() -> Result<T>) -> Result<T> {
+    fs::create_dir_all(dir)?;
+    let mut options = OpenOptions::new();
+    options.read(true).write(true).create(true).truncate(false);
+    #[cfg(target_os = "linux")]
+    {
+        use std::os::unix::fs::OpenOptionsExt;
+        options.custom_flags(0x20000).mode(0o600); // O_NOFOLLOW
+    }
+    let lock = options.open(dir.join(".tidy-cleaner.lock"))?;
+    if !lock.metadata()?.is_file() {
+        bail!("Persistence lock is not a regular file");
+    }
+    lock.lock()?;
+    operation()
+}
 
 /// Fixed filename used by the application's own autostart entry. Written and
 /// removed under this exact name so enable/disable always line up.
@@ -13,7 +36,7 @@ impl DesktopAutostart {
     pub fn get_user_autostart_dir() -> PathBuf {
         let config_home = std::env::var_os("XDG_CONFIG_HOME")
             .map(PathBuf::from)
-            .filter(|p| !p.as_os_str().is_empty())
+            .filter(|p| p.is_absolute())
             .or_else(|| std::env::var_os("HOME").map(|h| PathBuf::from(h).join(".config")));
         config_home
             .unwrap_or_else(|| PathBuf::from(".config"))
@@ -24,7 +47,7 @@ impl DesktopAutostart {
         let mut dirs = Vec::new();
         if let Ok(xdg_dirs) = std::env::var("XDG_CONFIG_DIRS") {
             for dir in xdg_dirs.split(':') {
-                if !dir.is_empty() {
+                if Path::new(dir).is_absolute() {
                     dirs.push(PathBuf::from(dir).join("autostart"));
                 }
             }
@@ -49,6 +72,7 @@ impl DesktopAutostart {
         if Self::contains_control_chars(name)
             || Self::contains_control_chars(exec)
             || Self::contains_control_chars(comment)
+            || Self::contains_control_chars(&req.icon)
         {
             bail!("Autostart fields must not contain line breaks or control characters");
         }
@@ -76,18 +100,55 @@ impl DesktopAutostart {
     /// Writes content atomically (temp file + rename) so a crash mid-write
     /// never leaves a truncated .desktop file behind.
     pub fn atomic_write_file(path: &Path, content: &str) -> Result<()> {
+        let dir = path.parent().context("No parent directory")?;
+        with_directory_lock(dir, || Self::atomic_write_locked(path, content, false))
+    }
+
+    pub(crate) fn atomic_write_locked(path: &Path, content: &str, create_only: bool) -> Result<()> {
         let dir = path
             .parent()
             .ok_or_else(|| anyhow::anyhow!("No parent directory for {:?}", path))?;
-        let tmp = dir.join(format!(
-            ".{}.tmp",
-            path.file_name().unwrap_or_default().to_string_lossy()
-        ));
-        fs::write(&tmp, content)
-            .with_context(|| format!("Failed to write temporary file {:?}", tmp))?;
-        fs::rename(&tmp, path)
-            .with_context(|| format!("Failed to move {:?} to {:?}", tmp, path))?;
-        Ok(())
+        let (tmp, mut file) = loop {
+            let tmp = dir.join(format!(
+                ".{}.{}.{}.tmp",
+                path.file_name().unwrap_or_default().to_string_lossy(),
+                std::process::id(),
+                TEMP_SEQUENCE.fetch_add(1, Ordering::Relaxed)
+            ));
+            let mut options = OpenOptions::new();
+            options.write(true).create_new(true);
+            #[cfg(unix)]
+            {
+                use std::os::unix::fs::OpenOptionsExt;
+                options.mode(0o600);
+            }
+            match options.open(&tmp) {
+                Ok(file) => break (tmp, file),
+                Err(e) if e.kind() == std::io::ErrorKind::AlreadyExists => continue,
+                Err(e) => return Err(e).context("Failed to create temporary file"),
+            }
+        };
+        let result: Result<()> = (|| {
+            file.write_all(content.as_bytes())?;
+            file.sync_all()?;
+            if create_only {
+                // Unlike rename, hard_link atomically refuses any existing destination.
+                fs::hard_link(&tmp, path)?;
+                fs::remove_file(&tmp)?;
+            } else {
+                fs::rename(&tmp, path)?;
+            }
+            File::open(dir)?.sync_all()?;
+            Ok(())
+        })();
+        if result.is_err() {
+            if let Err(e) = fs::remove_file(&tmp) {
+                if e.kind() != std::io::ErrorKind::NotFound {
+                    tracing::warn!("Failed to remove temporary file {:?}: {}", tmp, e);
+                }
+            }
+        }
+        result.with_context(|| format!("Failed to publish {:?}", path))
     }
 
     pub fn parse_file(path: &Path, source: StartupSource) -> Result<StartupItem> {
@@ -251,26 +312,28 @@ impl DesktopAutostart {
         let target_file = dir.join(file_name);
 
         let content = Self::generate_desktop_file_content(req);
-        Self::atomic_write_file(&target_file, &content)?;
-
-        #[cfg(unix)]
-        {
-            use std::os::unix::fs::PermissionsExt;
-            if let Ok(metadata) = fs::metadata(&target_file) {
-                let mut perms = metadata.permissions();
-                perms.set_mode(0o755);
-                let _ = fs::set_permissions(&target_file, perms);
+        with_directory_lock(&dir, || {
+            // A new user entry must not silently replace an effective system entry either.
+            for system in Self::get_system_autostart_dirs() {
+                match fs::symlink_metadata(system.join(target_file.file_name().unwrap())) {
+                    Ok(_) => bail!("An autostart entry with this filename already exists"),
+                    Err(e) if e.kind() == std::io::ErrorKind::NotFound => {}
+                    Err(e) => return Err(e.into()),
+                }
             }
-        }
+            Self::atomic_write_locked(&target_file, &content, true)
+        })?;
 
         Ok(target_file)
     }
 
     pub fn toggle_entry(item: &StartupItem, enable: bool) -> Result<()> {
         let user_dir = Self::get_user_autostart_dir();
-        if !user_dir.exists() {
-            fs::create_dir_all(&user_dir)?;
-        }
+        with_directory_lock(&user_dir, || Self::toggle_entry_locked(item, enable))
+    }
+
+    pub(crate) fn toggle_entry_locked(item: &StartupItem, enable: bool) -> Result<()> {
+        let user_dir = Self::get_user_autostart_dir();
 
         let target_file = user_dir.join(&item.file_name);
 
@@ -282,79 +345,54 @@ impl DesktopAutostart {
             bail!("Autostart file does not exist");
         };
 
-        let mut lines: Vec<String> = Vec::new();
-        let mut has_hidden = false;
-        let mut has_gnome_enabled = false;
-        let mut has_kde_enabled = false;
+        let new_content = Self::with_enabled(&content, enable)?;
+        Self::atomic_write_locked(&target_file, &new_content, false)
+    }
 
-        for line in content.lines() {
-            let trimmed = line.trim();
-            if trimmed.starts_with("Hidden=") {
-                has_hidden = true;
-                lines.push(format!("Hidden={}", if enable { "false" } else { "true" }));
-            } else if trimmed.starts_with("X-GNOME-Autostart-enabled=") {
-                has_gnome_enabled = true;
-                lines.push(format!(
-                    "X-GNOME-Autostart-enabled={}",
-                    if enable { "true" } else { "false" }
-                ));
-            } else if trimmed.starts_with("X-KDE-autostart-enabled=") {
-                has_kde_enabled = true;
-                lines.push(format!(
-                    "X-KDE-autostart-enabled={}",
-                    if enable { "true" } else { "false" }
-                ));
-            } else {
-                lines.push(line.to_string());
-            }
+    pub(crate) fn with_enabled(content: &str, enable: bool) -> Result<String> {
+        let mut lines: Vec<String> = content.lines().map(str::to_owned).collect();
+        let start = lines
+            .iter()
+            .position(|l| l.trim() == "[Desktop Entry]")
+            .context("Missing Desktop Entry group")?
+            + 1;
+        let end = lines[start..]
+            .iter()
+            .position(|l| l.trim().starts_with('['))
+            .map(|i| start + i)
+            .unwrap_or(lines.len());
+        let keys = [
+            "Hidden",
+            "X-GNOME-Autostart-enabled",
+            "X-KDE-autostart-enabled",
+        ];
+        let mut group: Vec<String> = lines[start..end]
+            .iter()
+            .filter(|l| {
+                !l.split_once('=')
+                    .map(|(k, _)| keys.contains(&k.trim()))
+                    .unwrap_or(false)
+            })
+            .cloned()
+            .collect();
+        for key in keys {
+            let value = if key == "Hidden" { !enable } else { enable };
+            group.push(format!("{}={}", key, value));
         }
-
-        if !has_hidden {
-            lines.push(format!("Hidden={}", if enable { "false" } else { "true" }));
-        }
-        if !has_gnome_enabled {
-            lines.push(format!(
-                "X-GNOME-Autostart-enabled={}",
-                if enable { "true" } else { "false" }
-            ));
-        }
-        if !has_kde_enabled {
-            lines.push(format!(
-                "X-KDE-autostart-enabled={}",
-                if enable { "true" } else { "false" }
-            ));
-        }
-
-        let new_content = lines.join("\n") + "\n";
-        Self::atomic_write_file(&target_file, &new_content)?;
-
-        #[cfg(unix)]
-        {
-            use std::os::unix::fs::PermissionsExt;
-            if let Ok(metadata) = fs::metadata(&target_file) {
-                let mut perms = metadata.permissions();
-                perms.set_mode(0o755);
-                let _ = fs::set_permissions(&target_file, perms);
-            }
-        }
-
-        Ok(())
+        lines.splice(start..end, group);
+        Ok(lines.join("\n") + "\n")
     }
 
     pub fn remove_entry(item: &StartupItem) -> Result<()> {
         let user_dir = Self::get_user_autostart_dir();
-        let user_file = user_dir.join(&item.file_name);
-
-        if user_file.exists() {
+        with_directory_lock(&user_dir, || {
+            // Removing an effective system entry means disable, never expose its fallback.
+            if item.source == StartupSource::System {
+                return Self::toggle_entry_locked(item, false);
+            }
+            let user_file = user_dir.join(&item.file_name);
             fs::remove_file(&user_file)
-                .with_context(|| format!("Failed to delete autostart file {:?}", user_file))?;
-        }
-
-        // If it was a system entry, disable it by writing Hidden=true override
-        if item.source == StartupSource::System {
-            Self::toggle_entry(item, false)?;
-        }
-
-        Ok(())
+                .with_context(|| format!("Failed to delete autostart file {:?}", user_file))
+        })
     }
 }

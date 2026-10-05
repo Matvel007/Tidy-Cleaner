@@ -4,6 +4,7 @@ pub mod cleanup;
 pub mod filesystem;
 pub mod localization;
 pub mod logging;
+pub mod process;
 pub mod settings;
 pub mod startup;
 pub mod system;

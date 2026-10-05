@@ -1,4 +1,4 @@
-use super::models::BatteryMetrics;
+use super::models::{BatteryMetrics, BatteryStatus};
 use std::fs;
 use std::path::Path;
 
@@ -6,15 +6,23 @@ pub struct BatteryCollector;
 
 impl BatteryCollector {
     pub fn collect() -> BatteryMetrics {
-        let p = Path::new("/sys/class/power_supply");
+        Self::collect_from(Path::new("/sys/class/power_supply"))
+    }
+
+    pub fn collect_from(p: &Path) -> BatteryMetrics {
         if !p.exists() {
             return BatteryMetrics::default();
         }
 
         if let Ok(entries) = fs::read_dir(p) {
-            for entry in entries.flatten() {
-                let name = entry.file_name().to_string_lossy().to_string();
-                if name.starts_with("BAT") {
+            let mut entries: Vec<_> = entries.flatten().collect();
+            entries.sort_by_key(|entry| entry.file_name());
+            for entry in entries {
+                if fs::read_to_string(entry.path().join("type"))
+                    .is_ok_and(|kind| kind.trim() == "Battery")
+                    && !fs::read_to_string(entry.path().join("present"))
+                        .is_ok_and(|present| present.trim() == "0")
+                {
                     let bat_path = entry.path();
 
                     let capacity: f32 = fs::read_to_string(bat_path.join("capacity"))
@@ -24,8 +32,8 @@ impl BatteryCollector {
 
                     let status = fs::read_to_string(bat_path.join("status"))
                         .ok()
-                        .map(|s| s.trim().to_string())
-                        .unwrap_or_else(|| "Unknown".to_string());
+                        .map(|s| BatteryStatus::from_sysfs(&s))
+                        .unwrap_or_default();
 
                     // Power in Watts (micro-watts to watts)
                     let power_u_w: Option<f32> = fs::read_to_string(bat_path.join("power_now"))
@@ -60,7 +68,9 @@ impl BatteryCollector {
                         .and_then(|s| s.trim().parse::<f32>().ok());
 
                     let health_percent = match (full_energy, design_energy) {
-                        (Some(full), Some(design)) if design > 0.0 => (full / design * 100.0).clamp(0.0, 100.0),
+                        (Some(full), Some(design)) if design > 0.0 => {
+                            (full / design * 100.0).clamp(0.0, 100.0)
+                        }
                         _ => 100.0,
                     };
 

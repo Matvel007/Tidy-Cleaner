@@ -5,60 +5,80 @@ use crate::{AppWindow, StartupCardData};
 use slint::{ComponentHandle, ModelRc, VecModel};
 use std::sync::Arc;
 
+enum StartupChange {
+    Refresh,
+    Search(String),
+    Toggle(String, bool),
+    Add(CreateStartupRequest),
+    Remove(String),
+}
+
 pub fn setup_startup_handlers(
     window: &AppWindow,
     service: Arc<StartupService>,
     state: Arc<AppState>,
 ) {
+    let (tx, mut rx) = tokio::sync::mpsc::unbounded_channel();
     let win_handle = window.as_weak();
-    let s_clone = service.clone();
-    let st_clone = state.clone();
-
-    // Initial load
+    let mut autostart_updates = state.autostart_updates.subscribe();
     tokio::spawn(async move {
-        update_startup_ui(win_handle, s_clone, st_clone).await;
+        loop {
+            let change = tokio::select! {
+                biased;
+                change = rx.recv() => match change { Some(change) => change, None => break },
+                update = autostart_updates.changed() => {
+                    if update.is_err() { break; }
+                    StartupChange::Refresh
+                }
+            };
+            let reconcile = !matches!(&change, StartupChange::Search(_));
+            let result = match change {
+                StartupChange::Refresh => {
+                    service.refresh_items().await;
+                    Ok(())
+                }
+                StartupChange::Search(query) => {
+                    service.set_search_query(query).await;
+                    Ok(())
+                }
+                StartupChange::Toggle(id, enable) => service.toggle_item(&id, enable).await,
+                StartupChange::Add(req) => service.add_item(req).await,
+                StartupChange::Remove(id) => service.remove_item(&id).await,
+            };
+            if let Err(e) = result {
+                tracing::error!("Startup operation failed: {:#}", e);
+            }
+            update_startup_ui(
+                win_handle.clone(),
+                service.clone(),
+                state.clone(),
+                reconcile,
+            )
+            .await;
+        }
     });
+    let send = Arc::new(move |change| {
+        if let Err(e) = tx.send(change) {
+            tracing::error!("Startup worker stopped: {}", e);
+        }
+    });
+    send(StartupChange::Refresh);
 
     // Search query changed
-    let win_handle = window.as_weak();
-    let s_clone = service.clone();
-    let st_clone = state.clone();
+    let sender = send.clone();
     window.on_startup_search(move |query| {
-        let win = win_handle.clone();
-        let s = s_clone.clone();
-        let st = st_clone.clone();
-        let q = query.to_string();
-        tokio::spawn(async move {
-            s.set_search_query(q).await;
-            update_startup_ui(win, s, st).await;
-        });
+        sender(StartupChange::Search(query.to_string()));
     });
 
     // Toggle enabled state
-    let win_handle = window.as_weak();
-    let s_clone = service.clone();
-    let st_clone = state.clone();
+    let sender = send.clone();
     window.on_startup_toggle_item(move |id, enable| {
-        let win = win_handle.clone();
-        let s = s_clone.clone();
-        let st = st_clone.clone();
-        let item_id = id.to_string();
-        tokio::spawn(async move {
-            if let Err(e) = s.toggle_item(&item_id, enable).await {
-                tracing::error!("Failed to toggle startup item {}: {:?}", item_id, e);
-            }
-            update_startup_ui(win, s, st).await;
-        });
+        sender(StartupChange::Toggle(id.to_string(), enable));
     });
 
     // Add new startup entry
-    let win_handle = window.as_weak();
-    let s_clone = service.clone();
-    let st_clone = state.clone();
+    let sender = send.clone();
     window.on_startup_add_entry(move |name, exec, comment, terminal| {
-        let win = win_handle.clone();
-        let s = s_clone.clone();
-        let st = st_clone.clone();
         let req = CreateStartupRequest {
             name: name.to_string(),
             exec: exec.to_string(),
@@ -66,29 +86,12 @@ pub fn setup_startup_handlers(
             icon: String::new(),
             terminal,
         };
-        tokio::spawn(async move {
-            if let Err(e) = s.add_item(req).await {
-                tracing::error!("Failed to add startup item: {:?}", e);
-            }
-            update_startup_ui(win, s, st).await;
-        });
+        sender(StartupChange::Add(req));
     });
 
     // Remove startup entry
-    let win_handle = window.as_weak();
-    let s_clone = service.clone();
-    let st_clone = state.clone();
     window.on_startup_remove_entry(move |id| {
-        let win = win_handle.clone();
-        let s = s_clone.clone();
-        let st = st_clone.clone();
-        let item_id = id.to_string();
-        tokio::spawn(async move {
-            if let Err(e) = s.remove_item(&item_id).await {
-                tracing::error!("Failed to remove startup item {}: {:?}", item_id, e);
-            }
-            update_startup_ui(win, s, st).await;
-        });
+        send(StartupChange::Remove(id.to_string()));
     });
 
     // Browse executable / script file
@@ -103,24 +106,28 @@ pub fn setup_startup_handlers(
                     .flatten();
 
             if let Some(path) = picked {
+                let (path, is_executable) = match tokio::task::spawn_blocking(move || {
+                    #[cfg(unix)]
+                    let is_executable = {
+                        use std::os::unix::fs::PermissionsExt;
+                        std::fs::metadata(&path)
+                            .map(|m| m.is_file() && m.permissions().mode() & 0o111 != 0)
+                            .unwrap_or(false)
+                    };
+                    #[cfg(not(unix))]
+                    let is_executable = false;
+                    (path, is_executable)
+                })
+                .await
+                {
+                    Ok(value) => value,
+                    Err(e) => {
+                        tracing::error!("File inspection failed: {}", e);
+                        return;
+                    }
+                };
                 let _ = slint::invoke_from_event_loop(move || {
                     if let Some(w) = win.upgrade() {
-                        let is_executable = path.is_file() && {
-                            #[cfg(unix)]
-                            {
-                                use std::os::unix::fs::PermissionsExt;
-                                if let Ok(meta) = std::fs::metadata(&path) {
-                                    meta.permissions().mode() & 0o111 != 0
-                                } else {
-                                    false
-                                }
-                            }
-                            #[cfg(not(unix))]
-                            {
-                                false
-                            }
-                        };
-
                         let path_str = path.to_string_lossy().to_string();
                         let exec_command = if is_executable {
                             path_str
@@ -152,20 +159,46 @@ async fn update_startup_ui(
     win_handle: slint::Weak<AppWindow>,
     service: Arc<StartupService>,
     state: Arc<AppState>,
+    reconcile: bool,
 ) {
     let items = service.get_filtered_items().await;
+    let st = state.clone();
+    let (items, icons, autostart_error) = match tokio::task::spawn_blocking(move || {
+        let error = if reconcile {
+            st.reconcile_autostart().err().map(|e| format!("{:#}", e))
+        } else {
+            None
+        };
+        let icons: Vec<_> = items
+            .iter()
+            .map(|item| {
+                item.icon_path
+                    .as_ref()
+                    .and_then(|path| slint::Image::load_from_path(path).ok()?.to_rgba8())
+            })
+            .collect();
+        (items, icons, error)
+    })
+    .await
+    {
+        Ok(value) => value,
+        Err(e) => {
+            tracing::error!("Startup UI preparation failed: {}", e);
+            return;
+        }
+    };
 
     let _ = slint::invoke_from_event_loop(move || {
         if let Some(win) = win_handle.upgrade() {
+            crate::settings::ui_bridge::update_settings_ui(&win, &state);
+            if let Some(error) = autostart_error {
+                tracing::error!("Autostart reconciliation failed: {}", error);
+            }
             let loc = &state.localization;
             let mut ui_items = Vec::new();
-            for item in &items {
-                let (has_icon, img) = if let Some(ref path) = item.icon_path {
-                    if let Ok(slint_img) = slint::Image::load_from_path(path) {
-                        (true, slint_img)
-                    } else {
-                        (false, slint::Image::default())
-                    }
+            for (item, icon) in items.iter().zip(icons) {
+                let (has_icon, img) = if let Some(buffer) = icon {
+                    (true, slint::Image::from_rgba8(buffer))
                 } else {
                     (false, slint::Image::default())
                 };

@@ -1,7 +1,7 @@
 use crate::applications::desktop_entries::{DesktopEntryInfo, DesktopEntryRegistry};
 use crate::applications::models::{ApplicationItem, PackageSource};
-use crate::applications::polkit::PolkitExecutor;
 use crate::applications::traits::PackageManagerProvider;
+use crate::process::ReadOnlyCommand;
 use anyhow::{bail, Context, Result};
 use std::collections::HashMap;
 use std::path::Path;
@@ -28,7 +28,7 @@ impl RpmProvider {
     ) -> Result<Vec<ApplicationItem>> {
         let output = Command::new("rpm")
             .args(["-qa", "--qf", "%{NAME}\t%{VERSION}-%{RELEASE}\n"])
-            .output()
+            .scan_output()
             .context("Failed to execute rpm -qa")?;
 
         if !output.status.success() {
@@ -46,11 +46,7 @@ impl RpmProvider {
             let pkg_name = parts[0].to_string();
             let version = parts[1].to_string();
             let pkg_lower = pkg_name.to_lowercase();
-            let norm_pkg = pkg_lower.replace(['-', '_', '.'], "");
-
-            let desktop_info = desktop_entries
-                .get(&pkg_lower)
-                .or_else(|| desktop_entries.get(&norm_pkg));
+            let desktop_info = desktop_entries.get(&pkg_lower);
 
             if desktop_info.is_none() {
                 if Self::is_excluded(&pkg_name) {
@@ -125,59 +121,33 @@ impl PackageManagerProvider for RpmProvider {
     fn is_available(&self) -> bool {
         Command::new("rpm")
             .arg("--version")
-            .output()
+            .scan_output()
             .map(|o| o.status.success())
             .unwrap_or(false)
     }
 
     fn list_installed(&self) -> Result<Vec<ApplicationItem>> {
-        if !self.is_available() {
-            return Ok(Vec::new());
-        }
-        let desktop_entries = DesktopEntryRegistry::scan_system_entries();
+        let desktop_entries = DesktopEntryRegistry::native_entries(PackageSource::Rpm)?;
         Self::parse_installed_packages(&desktop_entries)
     }
 
     fn uninstall(&self, package_id: &str) -> Result<()> {
-        // Fedora/RHEL use dnf, openSUSE uses zypper. Pick whichever frontend is present.
-        let frontend = if Self::binary_available("dnf") {
-            "dnf"
-        } else if Self::binary_available("zypper") {
-            "zypper"
-        } else if Self::binary_available("microdnf") {
-            "microdnf"
-        } else {
-            "dnf"
-        };
-
-        let args: &[&str] = match frontend {
-            "zypper" => &["remove", "-y", package_id],
-            "microdnf" => &["remove", "-y", package_id],
-            _ => &["remove", "-y", package_id],
-        };
-        PolkitExecutor::run_with_pkexec(frontend, args)
+        // Inventory is supported, mutation is not: neither deployment ownership
+        // nor a complete approved transaction is represented by this interface.
+        Err(std::io::Error::new(std::io::ErrorKind::Unsupported,
+            format!("RPM inventory is read-only (mutable/OSTree/transactional); no approved transaction capability: {package_id}")).into())
     }
 
     fn get_details(&self, package_id: &str) -> Result<Option<String>> {
         let output = Command::new("rpm")
             .args(["-qi", package_id])
-            .output()
+            .scan_output()
             .context("Failed to get rpm package details")?;
 
         if output.status.success() {
             Ok(Some(String::from_utf8_lossy(&output.stdout).to_string()))
         } else {
-            Ok(None)
+            bail!("rpm -qi: {}", String::from_utf8_lossy(&output.stderr))
         }
-    }
-}
-
-impl RpmProvider {
-    fn binary_available(bin: &str) -> bool {
-        Command::new(bin)
-            .arg("--version")
-            .output()
-            .map(|o| o.status.success())
-            .unwrap_or(false)
     }
 }
